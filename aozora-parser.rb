@@ -71,8 +71,26 @@ module AozoraParser
 
   module Tree # {{{
     class Node # {{{
+      PROPERTY_NAMES = []
+
       def self.display_name
         self.name.split(/::/).last
+      end
+
+      def pretty_print (pp)
+        pp.group(
+          2,
+          "#<T#{self.class.display_name}",
+          '>'
+        ) do
+          names = self.class::PROPERTY_NAMES
+          names.each_with_index do
+            |name, index|
+            pp.breakable
+            pp.text "#{name}="
+            pp.pp self.instance_variable_get("@#{name}".intern)
+          end
+        end
       end
 
       def == (rhs)
@@ -87,7 +105,7 @@ module AozoraParser
     class Block < Node # {{{
       include Enumerable
 
-      attr_reader :items
+      attr_reader *(PROPERTY_NAMES = [:items])
 
       def initialize (items = [])
         raise Error::Implementation, "It's not Array: #{items}" unless Array === items
@@ -235,7 +253,7 @@ module AozoraParser
     end # }}}
 
     class Text < Node # {{{
-      attr_reader :text
+      attr_reader *(PROPERTY_NAMES = [:text])
 
       def initialize (text)
         @text = text
@@ -275,7 +293,7 @@ module AozoraParser
     class Document < Block; end
     class LineBreak < Node; end
     class Ruby < Block # {{{
-      attr_reader :ruby
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:ruby])
 
       def initialize (items = [], ruby = nil)
         super(items)
@@ -288,7 +306,7 @@ module AozoraParser
     class Annotation < Block; end
 
     class Leveled < Annotation # {{{
-      attr_reader :level
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:level])
 
       def initialize (items = [], level = nil)
         super(items)
@@ -510,6 +528,15 @@ module AozoraParser
         |block|
         l, c, r = block.split_by_text(tok.target)
         [*l, klass.new(Tree::Block === c ? c.items : [c], *args), *r]
+      end
+    end
+  end # }}}
+
+  def self.make_simple_inspect # {{{
+    require 'pp'
+    Tree::Node.class_eval do
+      def inspect
+        "\n" + PP.pp(self, '')
       end
     end
   end # }}}

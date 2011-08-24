@@ -5,6 +5,8 @@ require 'minitest/unit'
 require 'minitest/autorun'
 require 'aozora-parser'
 
+AozoraParser.make_simple_inspect
+
 # Token
 
 class TestTokenAnnotation < MiniTest::Unit::TestCase # {{{
@@ -663,3 +665,34 @@ EOT
   end # }}}
 end # }}}
 
+# make_simple_inspect
+
+class TestSimpleInspect < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_pretty_print
+    node = Tree::Text.new('neko')
+    assert_equal <<EOT, node.inspect
+
+#<TText text="neko">
+EOT
+
+    node = Tree::Bold.new([Tree::Text.new('neko')])
+    assert_equal <<EOT, node.inspect
+
+#<TBold items=[#<TText text="neko">]>
+EOT
+
+    node = Tree::Ruby.new([Tree::Text.new('neko')], 'motz')
+    assert_equal <<EOT, node.inspect
+
+#<TRuby items=[#<TText text="neko">] ruby="motz">
+EOT
+
+    node = Tree::Leveled.new([Tree::Text.new('neko')], 3)
+    assert_equal <<EOT, node.inspect
+
+#<TLeveled items=[#<TText text="neko">] level=3>
+EOT
+  end
+end # }}}
