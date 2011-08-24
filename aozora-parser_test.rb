@@ -1,0 +1,665 @@
+#!/usr/bin/ruby
+# vim:set fileencoding=cp932 :
+
+require 'minitest/unit'
+require 'minitest/autorun'
+require 'aozora-parser'
+
+# Token
+
+class TestTokenAnnotation < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_simple # {{{
+    t = Token::Annotation.new('”L‚È‚ß')
+
+    assert_equal '”L‚È‚ß',  t.whole
+    assert_equal nil,       t.target
+    assert_equal nil,       t.spec
+  end # }}}
+
+  def test__with_target # {{{
+    t = Token::Annotation.new('u”Lv‚Í‘¾Žš')
+
+    assert_equal 'u”Lv‚Í‘¾Žš',  t.whole
+    assert_equal '”L',            t.target
+    assert_equal '‘¾Žš',          t.spec
+  end # }}}
+
+  def test__with_target_invalid # {{{
+    t = Token::Annotation.new('‚àu”Lv‚Í‘¾Žš')
+
+    assert_equal '‚àu”Lv‚Í‘¾Žš',  t.whole
+    assert_equal nil,               t.target
+    assert_equal nil,               t.spec
+  end # }}}
+end # }}}
+
+class TestLexer < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_line_break # {{{
+    ts = Lexer.lex("‚¢‚¿‚¬‚å‚¤‚ß\n‚É‚¬‚å‚¤‚ß")
+
+    assert_equal 3, ts.size
+    assert_instance_of Token::Hiragana,   ts[0]
+    assert_equal       '‚¢‚¿‚¬‚å‚¤‚ß',    ts[0].text
+    assert_instance_of Token::LineBreak,  ts[1]
+    assert_instance_of Token::Hiragana,   ts[2]
+    assert_equal       '‚É‚¬‚å‚¤‚ß',      ts[2].text
+  end # }}}
+
+  def test_text # {{{
+    ts = Lexer.lex("‚Ë‚±‚Í‚©‚í‚¢‚¢")
+
+    assert 1, ts.size
+    assert_instance_of Token::Hiragana,   ts[0]
+    assert_equal       '‚Ë‚±‚Í‚©‚í‚¢‚¢',  ts[0].text
+  end # }}}
+
+  def test_ruby # {{{
+    ts = Lexer.lex("”Ls‚Ë‚±t")
+
+    assert_equal 2, ts.size
+    assert_instance_of Token::Kanji,              ts[0]
+    assert_equal       '”L',                      ts[0].text
+    assert_instance_of Token::Ruby,               ts[1]
+    assert_equal       '‚Ë‚±',                    ts[1].ruby
+  end # }}}
+
+  def test_ruby__with_bar # {{{
+    ts = Lexer.lex("‚í‚½‚µ‚Í‚ ‚Ì‚©‚í‚¢‚¢b”Ls‚Ë‚±t‚ð‚È‚ß‚é‚±‚Æ‚µ‚©‚Å‚«‚È‚¢‚Ì‚Å‚ ‚Á‚½")
+
+    assert_equal 5, ts.size
+    assert_instance_of Token::Hiragana,           ts[0] # ‚í‚½‚µ‚Í‚ ‚Ì‚©‚í‚¢‚¢
+    assert_equal       '‚í‚½‚µ‚Í‚ ‚Ì‚©‚í‚¢‚¢',    ts[0].text
+    assert_instance_of Token::RubyBar,            ts[1] # b
+    assert_instance_of Token::Kanji,              ts[2] # ”L
+    assert_equal       '”L',                      ts[2].text
+    assert_instance_of Token::Ruby,               ts[3] # s‚Ë‚±t
+    assert_equal       '‚Ë‚±',                    ts[3].ruby
+    assert_instance_of Token::Hiragana,           ts[4] # ‚ð‚È‚ß‚é‚±‚Æ‚µ‚©‚Å‚«‚È‚¢‚Ì‚Å‚ ‚Á‚½
+  end # }}}
+
+  def test_char_type # {{{
+    ts = Lexer.lex("Ž„‚ÍƒlƒR‚ðär‚ß‚é")
+
+    assert_equal 6, ts.size
+    assert_instance_of Token::Kanji,       ts[0] # Ž„
+    assert_instance_of Token::Hiragana,    ts[1] # ‚Í
+    assert_instance_of Token::Katakana,    ts[2] # ƒlƒR
+    assert_instance_of Token::Hiragana,    ts[3] # ‚ð
+    assert_instance_of Token::Kanji,       ts[4] # är
+    assert_instance_of Token::Hiragana,    ts[5] # ‚ß‚é
+  end # }}}
+
+  def test_marks # {{{
+    ts = Lexer.lex("foob¦bar")
+
+    assert_equal 4, ts.size
+    assert_instance_of Token::OtherText,              ts[0]
+    assert_equal      'foo',                          ts[0].text
+    assert_instance_of Token::RubyBar,                ts[1]
+    assert_instance_of Token::RiceMark,               ts[2]
+    assert_instance_of Token::OtherText,              ts[3]
+    assert_equal      'bar',                          ts[3].text
+  end # }}}
+end # }}}
+
+# Parser
+
+class TestTreeNode < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_equivalent # {{{
+    assert_block { Tree::Text.new('‚Ù‚°') == Tree::Text.new('‚Ù‚°') }
+    assert_block { not Tree::Text.new('‚Ù‚°') == Tree::Text.new('‚à‚°') }
+    assert_block { not Tree::Text.new('‚Ù‚°') == Tree::Ruby.new([Tree::Text.new('‚Ù‚°')]) }
+    assert_block { Tree::Text.new('‚Ù‚°').text == Tree::Ruby.new([Tree::Text.new('‚Ù‚°')]).text }
+
+    assert_block { Tree::LineBreak.new == Tree::LineBreak.new }
+    assert_block { Tree::Bold.new([Tree::Text.new('a')]) == Tree::Bold.new([Tree::Text.new('a')]) }
+    assert_block { Tree::Bottom.new([Tree::Text.new('a')]) == Tree::Bottom.new([Tree::Text.new('a')]) }
+    assert_block { Tree::Top.new([Tree::Text.new('a')]) == Tree::Top.new([Tree::Text.new('a')]) }
+
+    assert_block { not Tree::Bold.new([Tree::Text.new('a')]) == Tree::Bold.new([Tree::Text.new('A')]) }
+    assert_block { not Tree::Bottom.new([Tree::Text.new('a')]) == Tree::Bottom.new([Tree::Text.new('A')]) }
+    assert_block { not Tree::Top.new([Tree::Text.new('a')]) == Tree::Top.new([Tree::Text.new('A')]) }
+  end # }}}
+
+  def test_display_name # {{{
+    assert_equal 'Text',      Tree::Text.display_name
+    assert_equal 'Ruby',      Tree::Ruby.display_name
+    assert_equal 'Document',  Tree::Document.display_name
+    assert_equal 'Bold',      Tree::Bold.display_name
+  end # }}}
+end # }}}
+
+class TestTreeBlock < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_text # {{{
+    t =
+      Tree::Block.new([
+        Tree::Text.new('a'),
+        Tree::LineBreak.new,
+        Tree::Text.new('b'),
+        Tree::Ruby.new([
+          Tree::Text.new('c'),
+          Tree::Text.new('d')
+        ]),
+        Tree::Text.new('e')
+      ])
+
+    assert_equal 'abcde',    t.text
+  end # }}}
+
+  def test_last_block_range__with_linebreak # {{{
+    ts = [
+      t0 = Tree::Text.new('a'),
+      t1 = Tree::LineBreak.new,
+      t2 = Tree::Text.new('c'),
+      t3 = Tree::LineBreak.new,
+      t4 = Tree::Text.new('e'),
+      t5 = Tree::Ruby.new([Tree::Text.new('f1'), Tree::Text.new('f2')]),
+      t6 = Tree::Text.new('g'),
+    ]
+
+    range = Tree::Block.new(ts).last_block_range
+
+    assert_equal (4 .. 6),  range
+  end # }}}
+
+  def test_last_block_range__with_no_linebreak # {{{
+    ts = [
+      t0 = Tree::Text.new('a'),
+      t1 = Tree::Text.new('b'),
+      t2 = Tree::Ruby.new([Tree::Text.new('c1'), Tree::Text.new('c2')]),
+      t3 = Tree::Text.new('d'),
+    ]
+
+    range = Tree::Block.new(ts).last_block_range
+
+    assert_equal   (0 .. 3),  range
+  end # }}}
+
+  def test_last_block_range__with_inner_linebreak # {{{
+    ts = [
+      t0 = Tree::Text.new('a'),
+      t1 = Tree::Text.new('b'),
+      t2 = Tree::Ruby.new([Tree::Text.new('c1'), Tree::LineBreak.new, Tree::Text.new('c2')]),
+      t3 = Tree::Text.new('d'),
+    ]
+
+    range = Tree::Block.new(ts).last_block_range
+
+    assert_equal  (0 .. 3),   range
+  end # }}}
+
+  def test_replace_last_block # {{{
+    ts = [
+      t0 = Tree::Text.new('a'),
+      t1 = Tree::LineBreak.new,
+      t2 = Tree::Text.new('c'),
+      t3 = Tree::LineBreak.new,
+      t4 = Tree::Text.new('e'),
+      t5 = Tree::Ruby.new([Tree::Text.new('f1'), Tree::Text.new('f2')]),
+      t6 = Tree::Text.new('g'),
+    ]
+
+    nt1 = Tree::Text.new('aa')
+    nt2 = Tree::Text.new('bb')
+
+    b = Tree::Block.new(ts)
+
+    b.replace_last_block do
+      |block|
+      return [nt1, nt2]
+    end
+
+    assert_equal 5,     b.size
+    assert_equal nt1,   b[4]
+    assert_equal nt2,   b[5]
+  end # }}}
+
+  def test_replace_last_block__with_block_instance # {{{
+    ts = [
+      t0 = Tree::Text.new('a'),
+      t1 = Tree::LineBreak.new,
+      t2 = Tree::Text.new('c'),
+      t3 = Tree::LineBreak.new,
+      t4 = Tree::Text.new('e'),
+      t5 = Tree::Ruby.new([Tree::Text.new('f1'), Tree::Text.new('f2')]),
+      t6 = Tree::Text.new('g'),
+    ]
+
+    nt1 = Tree::Text.new('aa')
+    nt2 = Tree::Text.new('bb')
+
+    b = Tree::Block.new(ts)
+
+    b.replace_last_block do
+      |block|
+      return Tree::Block.new([nt1, nt2])
+    end
+
+    assert_equal 5,     b.size
+    assert_equal nt1,   b[4]
+    assert_equal nt2,   b[5]
+  end # }}}
+
+  def test_split # {{{
+    # XXX ’P‚È‚éƒeƒLƒXƒg‚É•ªŠ„‚³‚ê‚éê‡‚ÍABlock ‚È‚Ç‚É‚¢‚ê‚È‚¢‚Å•Ô‚·
+
+    l, r =
+      Tree::Block.new([
+        Tree::Ruby.new([Tree::Text.new('Zˆê')]),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(3)
+
+    assert_equal Tree::Block.new([Tree::Ruby.new([Tree::Text.new('Zˆê')]), Tree::Text.new('“ñ')]),
+                                                      l
+    assert_equal Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã'),    r
+  end # }}}
+
+  def test_split__simple # {{{
+    # XXX ’P‚È‚éƒeƒLƒXƒg‚É•ªŠ„‚³‚ê‚éê‡‚ÍABlock ‚È‚Ç‚É‚¢‚ê‚È‚¢‚Å•Ô‚·
+
+    l, r =
+      Tree::Block.new([
+        Tree::Text.new('Zˆê'),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(3)
+
+    assert_equal Tree::Text.new('Zˆê“ñ'),            l
+    assert_equal Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã'),    r
+  end # }}}
+
+  def test_split__empty # {{{
+    # XXX ‚©‚ç‚É‚È‚éê‡‚Í nil
+
+    l, r =
+      Tree::Block.new([
+        Tree::Text.new('Zˆê'),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(0)
+
+    assert_equal nil,                                       l
+    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    r
+
+
+    l, r =
+      Tree::Block.new([
+        Tree::Text.new('Zˆê'),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(10)
+
+    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    l
+    assert_equal nil,                                       r
+
+
+    l, r =
+      Tree::Block.new([
+        Tree::Text.new('Zˆê'),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(11)
+
+    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    l
+    assert_equal nil,                                       r
+
+
+    l, r =
+      Tree::Block.new([
+        Tree::Text.new('Zˆê'),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(9)
+
+    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª'),    l
+    assert_equal Tree::Text.new('‹ã'),                    r
+  end # }}}
+
+  def test_split_by_text # {{{
+    # XXX ƒeƒLƒXƒg‚ª˜A‘±‚·‚éê‡‚ÍA˜AŒ‹‚·‚é
+
+    l, c, r =
+      Tree::Block.new([
+        Tree::Ruby.new([
+          Tree::Text.new('Zˆê')
+        ]),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split_by_text('ŽOŽlŒÜ')
+
+    assert_equal Tree::Block.new([Tree::Ruby.new([Tree::Text.new('Zˆê')]), Tree::Text.new('“ñ')]),
+                                                  l
+    assert_equal Tree::Text.new('ŽOŽlŒÜ'),        c
+    assert_equal Tree::Text.new('˜ZŽµ”ª‹ã'),      r
+  end # }}}
+
+  def test_split_by_text__simple # {{{
+    # XXX ’P‚È‚éƒeƒLƒXƒg‚É•ªŠ„‚³‚ê‚éê‡‚ÍABlock ‚È‚Ç‚É‚¢‚ê‚È‚¢‚Å•Ô‚·
+
+    l, c, r =
+      Tree::Block.new([
+        Tree::Text.new('Zˆê'),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split_by_text('“ñŽOŽl')
+
+    assert_equal Tree::Text.new('Zˆê'),        l
+    assert_equal Tree::Text.new('“ñŽOŽl'),      c
+    assert_equal Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),  r
+  end # }}}
+end # }}}
+
+class TestTreeText < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_text # {{{
+    t = Tree::Text.new('‚Ë‚±‚è‚ñ‚¿‚å')
+
+    assert_equal '‚Ë‚±‚è‚ñ‚¿‚å',    t.text
+  end # }}}
+
+  def test_split # {{{
+    l, r = Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã').split(4)
+    assert_equal Tree::Text.new('Zˆê“ñŽO'),      l
+    assert_equal Tree::Text.new('ŽlŒÜ˜ZŽµ”ª‹ã'),  r
+
+    l, r = Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã').split(10)
+    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    l
+    assert_equal nil,                                       r
+
+    l, r = Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã').split(1)
+    assert_equal Tree::Text.new('Z'),                    l
+    assert_equal Tree::Text.new('ˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    r
+
+    l, r = Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã').split(0)
+    assert_equal nil,                                       l
+    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    r
+  end # }}}
+
+  def test_split_by_text # {{{
+    # XXX •¶Žš—ñ‚Ì’·‚³‚ª—ë‚É‚È‚éê‡‚ÍAnil ‚ð•Ô‚µÈ—ª‚·‚é
+
+    # ^‚ñ’†
+    l, c, r = Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã').split_by_text('ŽOŽlŒÜ')
+
+    assert_equal Tree::Text.new('Zˆê“ñ'),    l
+    assert_equal Tree::Text.new('ŽOŽlŒÜ'),    c
+    assert_equal Tree::Text.new('˜ZŽµ”ª‹ã'),  r
+
+    # ¶Šñ‚è
+    l, c, r = Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã').split_by_text('Zˆê“ñ')
+
+    assert_equal nil,                               l
+    assert_equal Tree::Text.new('Zˆê“ñ'),          c
+    assert_equal Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã'),  r
+
+    # ‰EŠñ‚è
+    l, c, r = Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã').split_by_text('Žµ”ª‹ã')
+
+    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜Z'),  l
+    assert_equal Tree::Text.new('Žµ”ª‹ã'),          c
+    assert_equal nil,                               r
+  end # }}}
+end # }}}
+
+class TestTreeRuby < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_text # {{{
+    t =
+      Tree::Ruby.new([
+        Tree::Text.new('Zˆê“ñ'),
+        Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã')
+      ])
+
+    assert_equal 'Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã',    t.text
+  end # }}}
+end # }}}
+
+class TestParser < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_simple_text # {{{
+    ts = Parser.parse('‚Ë‚±‚ðär‚ß‚½‚¢')
+
+    assert_equal 1, ts.size
+    assert_instance_of Tree::Text, ts[0]
+  end # }}}
+
+  def test_three_lines # {{{
+    ts = Parser.parse <<EOT
+ƒlƒRär‚ß
+‚ abc‚¢
+‚Ý‚°
+EOT
+
+    assert_equal 6, ts.size
+    assert_instance_of Tree::Text,      ts[0]
+    assert_equal       'ƒlƒRär‚ß',      ts[0].text
+    assert_instance_of Tree::LineBreak, ts[1]
+    assert_instance_of Tree::Text,      ts[2]
+    assert_equal       '‚ abc‚¢',       ts[2].text
+    assert_instance_of Tree::LineBreak, ts[3]
+    assert_instance_of Tree::Text,      ts[4]
+    assert_equal       '‚Ý‚°',          ts[4].text
+    assert_instance_of Tree::LineBreak, ts[5]
+  end # }}}
+
+  def test_bold_near # {{{
+    ts = Parser.parse("¡“ú‚Ì‚Æ‚±‚ë‚Í‚Ë‚±m”u‚Ë‚±v‚Í‘¾Žšn‚ð‚È‚ß‚½‚¢")
+
+    assert_equal 3, ts.size
+    assert_instance_of Tree::Text,              ts[0]
+    assert_instance_of Tree::Bold,              ts[1]
+    assert_instance_of Tree::Text,              ts[2]
+    assert_equal       '‚ð‚È‚ß‚½‚¢',            ts[2].text
+
+    bold = ts[1]
+    assert_equal 1, bold.size
+    assert_instance_of Tree::Text,  bold[0]
+    assert_equal       '‚Ë‚±',      bold.text
+    assert_equal       '‚Ë‚±',      bold[0].text
+  end # }}}
+
+  def test_dots # {{{
+    ts = Parser.parse("¡“ú‚Ì‚Æ‚±‚ë‚Í‚Ë‚±‚ðm”u‚Ë‚±v‚É–T“_n‚È‚ß‚½‚¢")
+
+    assert_equal 3, ts.size
+    assert_instance_of Tree::Text,              ts[0]
+    assert_instance_of Tree::Dots,              ts[1]
+    assert_instance_of Tree::Text,              ts[2]
+    assert_equal       '‚ð‚È‚ß‚½‚¢',            ts[2].text
+
+    dots = ts[1]
+    assert_equal 1, dots.size
+    assert_instance_of Tree::Text,  dots[0]
+    assert_equal       '‚Ë‚±',      dots.text
+    assert_equal       '‚Ë‚±',      dots[0].text
+  end # }}}
+
+  def test_dots_multi_line # {{{
+    ts = Parser.parse("‚¨‚Í‚æ‚¤I\n‚È‚º‚©‚Ë‚±‚ðm”u‚Ë‚±v‚É–T“_n‚È‚ß‚½‚¢‚Ë")
+
+    assert_equal 5, ts.size
+    assert_equal Tree::Text.new('‚¨‚Í‚æ‚¤I'),              ts[0]
+    assert_equal Tree::LineBreak.new,                       ts[1]
+    assert_equal Tree::Text.new('‚È‚º‚©'),                  ts[2]
+    assert_equal Tree::Dots.new([Tree::Text.new('‚Ë‚±')]),  ts[3]
+    assert_equal Tree::Text.new('‚ð‚È‚ß‚½‚¢‚Ë'),            ts[4]
+
+    dots = ts[3]
+    assert_equal 1, dots.size
+    assert_instance_of Tree::Text,  dots[0]
+    assert_equal       '‚Ë‚±',      dots.text
+    assert_equal       '‚Ë‚±',      dots[0].text
+  end # }}}
+
+  def test_dots_near # {{{
+    ts = Parser.parse("¡“ú‚Ì‚Æ‚±‚ë‚Í‚Ë‚±m”u‚Ë‚±v‚É–T“_n‚ð‚È‚ß‚½‚¢")
+
+    assert_equal 3, ts.size
+    assert_instance_of Tree::Text,              ts[0]
+    assert_instance_of Tree::Dots,              ts[1]
+    assert_instance_of Tree::Text,              ts[2]
+    assert_equal       '‚ð‚È‚ß‚½‚¢',            ts[2].text
+
+    dots = ts[1]
+    assert_equal 1, dots.size
+    assert_instance_of Tree::Text,  dots[0]
+    assert_equal       '‚Ë‚±',      dots.text
+    assert_equal       '‚Ë‚±',      dots[0].text
+  end # }}}
+
+  def test_heading # {{{
+    ts = Parser.parse("meow\n‰F’ˆ”Lm”u‰F’ˆ”Lv‚Í’†Œ©o‚µn\nmeow")
+
+    assert_equal 5, ts.size
+    assert_equal Tree::Text.new('meow'),                                ts[0]
+    assert_equal Tree::LineBreak.new,                                   ts[1]
+    assert_equal Tree::Heading.new([Tree::Text.new('‰F’ˆ”L')], '’†'),   ts[2]
+    assert_equal Tree::LineBreak.new,                                   ts[3]
+    assert_equal Tree::Text.new('meow'),                                ts[4]
+  end # }}}
+
+  def test_top # {{{
+    # XXX ‰üs‚ð‚¢‚ê‚éˆÊ’u‚É‚¿‚ã‚¤‚¢
+    # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
+    ts = Parser.parse <<EOT
+Hello
+m”‚±‚±‚©‚ç‚RŽš‰º‚°n
+‚Ë‚±
+‚È‚ß
+m”‚±‚±‚ÅŽš‰º‚°I‚í‚èn
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('‚Ë‚±'),
+              Tree::LineBreak.new,
+              Tree::Text.new('‚È‚ß'),
+              Tree::LineBreak.new
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  def test_block_annotation # {{{
+    # XXX ‰üs‚ð‚¢‚ê‚éˆÊ’u‚É‚¿‚ã‚¤‚¢
+    # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
+
+    ts = Parser.parse <<EOT
+Hello
+m”‚±‚±‚©‚ç‚RŽš‰º‚°n
+‚Ë‚±
+‚È‚ß
+m”‚±‚±‚ÅŽš‰º‚°I‚í‚èn
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('‚Ë‚±'),
+              Tree::LineBreak.new,
+              Tree::Text.new('‚È‚ß'),
+              Tree::LineBreak.new
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  def test_continued_block_annotation # {{{
+    # XXX ˜A‘±‚·‚éê‡‚ÍA“r’†‚ÌI—¹ƒ^ƒO‚ðÈ—ª‚Å‚«‚é
+    # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
+
+    ts = Parser.parse <<EOT
+m”‚±‚±‚©‚ç‚QŽš‰º‚°n
+one
+m”‚±‚±‚©‚ç‚SŽš‰º‚°n
+two
+three
+m”‚±‚±‚ÅŽš‰º‚°I‚í‚èn
+four
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Top.new(
+            [
+              Tree::Text.new('one'),
+              Tree::LineBreak.new,
+            ],
+            2
+          ),
+          Tree::Top.new(
+            [
+              Tree::Text.new('two'),
+              Tree::LineBreak.new,
+              Tree::Text.new('three'),
+              Tree::LineBreak.new
+            ],
+            4
+          ),
+          Tree::Text.new('four'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+  end # }}}
+
+  def test_umnatched_block_annotation # {{{
+    assert_raises(Error::UnmatchedBlock) do
+      ts = Parser.parse <<EOT
+Hello
+m”‚±‚±‚©‚ç‚RŽš‰º‚°n
+‚Ë‚±
+‚È‚ß
+m”‚±‚±‚Å’n•t‚«I‚í‚èn
+World
+EOT
+    end
+  end # }}}
+
+  def test_no_block_end # {{{
+    assert_raises(Error::NoBlockEnd) do
+      ts = Parser.parse <<EOT
+Hello
+m”‚±‚±‚©‚ç‚RŽš‰º‚°n
+‚Ë‚±
+‚È‚ß
+EOT
+    end
+  end # }}}
+end # }}}
+
