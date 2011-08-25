@@ -310,7 +310,7 @@ module AozoraParser
 
       def initialize (items = [], level = nil)
         super(items)
-        @level = level
+        @level = String === level ?  level.tr('‚O-‚X', '0-9').to_i : level
       end
 
       def == (rhs)

@@ -360,6 +360,16 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
   end # }}}
 end # }}}
 
+class TestTreeLeveled < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_new # {{{
+    t = Tree::Leveled.new([], '3')
+    assert_equal 3,                         t.level
+    assert_equal Tree::Leveled.new([], 3),  t
+  end # }}}
+end # }}}
+
 class TestTreeText < MiniTest::Unit::TestCase # {{{
   include AozoraParser
 
