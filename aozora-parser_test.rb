@@ -367,6 +367,10 @@ class TestTreeLeveled < MiniTest::Unit::TestCase # {{{
     t = Tree::Leveled.new([], '3')
     assert_equal 3,                         t.level
     assert_equal Tree::Leveled.new([], 3),  t
+
+    t = Tree::Leveled.new([])
+    assert_equal nil,                         t.level
+    assert_equal Tree::Leveled.new([], nil),  t
   end # }}}
 end # }}}
 
