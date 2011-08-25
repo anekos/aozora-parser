@@ -514,6 +514,8 @@ module AozoraParser
           on_annotation(tok)
         when Token::RubyBar
           enter_block(Tree::Ruby)
+        else
+          put(Tree::Unknown, tok)
         end
       end
 
