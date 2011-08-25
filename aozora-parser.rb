@@ -596,6 +596,8 @@ module AozoraParser
         put(Tree::SheetBreak)
       when /\A(?:天から)?(#{Pattern::NUMS}+)字下げ?\Z/
         on_indent(Tree::Top, Regexp.last_match[1])
+      when /\A(?:地付き|、?地(?:から|より))(?:(#{Pattern::NUMS}+)字(?:空き|上げ|アキ))?/
+        on_indent(Tree::Bottom, Regexp.last_match[1])
       else
         @ignore_linebreak = false
         put(Tree::Unknown, tok)
@@ -611,7 +613,9 @@ module AozoraParser
     end
 
     def on_indent (klass, level)
-      raise Error::UnexpectedWord unless @current_block.last == nil or Tree::Break === @current_block.last
+      if klass == Tree::Top
+        raise Error::UnexpectedWord unless @current_block.last == nil or Tree::Break === @current_block.last
+      end
       @ignore_linebreak = false
       enter_block(klass, [], level)
       @on_one_line_annotation = klass

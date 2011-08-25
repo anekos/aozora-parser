@@ -768,6 +768,77 @@ EOT
     assert_equal except, ts
   end # }}}
 
+  def test_bottom_oneline # {{{
+    ts = Parser.parse <<EOT
+Hello
+［＃地から１2字上げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            12
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 字下げと違い、前に文字があってもいいんだよ
+    ts = Parser.parse <<EOT
+ひゃっほう！［＃地から３字上げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('ひゃっほう！'),
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 改ページの後
+    ts = Parser.parse <<EOT
+［＃改頁］
+［＃地付き］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::PageBreak.new,
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            nil
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+  end # }}}
+
   def test_block_annotation # {{{
     # XXX 改行をいれる位置にちゅうい
     # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
