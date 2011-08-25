@@ -582,7 +582,7 @@ module AozoraParser
       when /\Aここで、?(?:地付き|、?地上げ|字上げ)終わ?り\Z/
         exit_block(Tree::Bottom)
       when /\A改(?:ページ|頁)\Z/
-        put(Tree::SheetBreak)
+        put(Tree::PageBreak)
       when /\A改丁\/Z/
         put(Tree::SheetBreak)
       else
