@@ -672,6 +672,45 @@ Hello
 なめ
 EOT
     end
+
+    assert_raises(Error::NoBlockEnd) do
+      ts = Parser.parse <<EOT
+Hello
+［＃ここから３字下げ］
+ねこ
+なめ
+［＃ここから地付き］
+［＃ここで地付き終わり］
+EOT
+    end
+
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから３字下げ］
+one
+猫［＃「猫」は太字］
+two
+［＃ここで字下げ終わり］
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('one'),
+              Tree::LineBreak.new,
+              Tree::Bold.new([Tree::Text.new('猫')]),
+              Tree::LineBreak.new,
+              Tree::Text.new('two'),
+              Tree::LineBreak.new
+            ],
+            3
+          )
+        ]
+      )
+    assert_equal except, ts
   end # }}}
 end # }}}
 

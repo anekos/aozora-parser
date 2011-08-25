@@ -459,6 +459,7 @@ module AozoraParser
       end
 
       on_not_text
+      on_end
     end
 
     private
@@ -492,6 +493,10 @@ module AozoraParser
       old = @block_stack.pop
       raise Error::UnmatchedBlock.new(old.left_node, right_node_class) unless old.left_node.class == right_node_class
       @current_block = old.block
+    end
+
+    def on_end
+      raise Error::NoBlockEnd.new(@block_stack.last) unless @block_stack.empty?
     end
 
     def on_text (tok)
