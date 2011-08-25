@@ -69,8 +69,12 @@ module AozoraParser
 
     class LineBreak < Base; end
     class RubyBar < Base; end
-    class RiceMark < Base; end
 
+    class RiceMark < Base # {{{
+      def text
+        '¦'
+      end
+    end # }}}
 
     class Annotation < Base
       attr_reader :target, :spec, :whole
@@ -514,6 +518,8 @@ module AozoraParser
           on_annotation(tok)
         when Token::RubyBar
           enter_block(Tree::Ruby)
+        when Token::RiceMark
+          @text_buffer << tok
         else
           put(Tree::Unknown, tok)
         end
