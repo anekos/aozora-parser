@@ -536,9 +536,9 @@ module AozoraParser
     def on_annotation_with_no_target (tok)
       @ignore_linebreak = true
       case tok.whole
-      when /(?:ここから)?(?:引用文、?)?(#{Pattern::NUMS}+)字下げ(?:、折り返して#{Pattern::NUMS}+字下げ|、本文とはアキナシ)?/
+      when /\A(?:ここから)?(?:引用文、?)?(#{Pattern::NUMS}+)字下げ(?:、折り返して#{Pattern::NUMS}+字下げ|、本文とはアキナシ)?\Z/
         enter_block(Tree::Top, [], Regexp.last_match[1])
-      when /(?:ここで字下げ|引用文)(?:終わ?り|、.+終わ?り)(?:|、１行アキ)?/
+      when /\A(?:ここで字下げ|引用文)(?:終わ?り|、.+終わ?り)(?:|、１行アキ)?\Z/
         exit_block(Tree::Top)
       end
     end
