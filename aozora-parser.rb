@@ -429,6 +429,7 @@ module AozoraParser
       @text_buffer = ''
       @current_block = @tree
       @block_stack = []
+      @ignore_linebreak = false
     end
 
     def parse (source)
@@ -440,9 +441,18 @@ module AozoraParser
 
         on_not_text
 
+        if Token::LineBreak === tok
+          if @ignore_linebreak
+            @ignore_linebreak = false
+          else
+            put(Tree::LineBreak)
+          end
+          next
+        end
+
+        @ignore_linebreak = false
+
         case tok
-        when Token::LineBreak
-          put(Tree::LineBreak)
         when Token::Annotation
           on_annotation(tok)
         end
@@ -465,23 +475,20 @@ module AozoraParser
     end
 
     def enter_block (left_node, *args)
-      raise Error::NotImplmented
-
       block = put(left_node, *args)
       raise Error::Implementation, "Not Block: #{block}" unless Tree::Block === block
-      @block_stack.push(Stack.new(@current_block, left_node))
+      @block_stack.push(Stack.new(@current_block, block))
       @current_block = block
     end
 
-    def exit_block (right_node)
-      raise Error::NotImplmented
-
+    def exit_block (right_node_class)
       old = @block_stack.pop
-      raise Error::UnmatchedBlock.new(old.left_node, right_node) unless old.left_node.class == right_node
+      raise Error::UnmatchedBlock.new(old.left_node, right_node_class) unless old.left_node.class == right_node_class
       @current_block = old.block
     end
 
     def on_text (tok)
+      @ignore_linebreak = false
       @text_buffer += tok.text
     end
 
@@ -515,11 +522,12 @@ module AozoraParser
     end
 
     def on_annotation_with_no_target (tok)
-      raise Error::NotImplmented
-
-      case tok.spec
+      @ignore_linebreak = true
+      case tok.whole
       when /(?:ここから)?(?:引用文、?)?(#{Pattern::NUMS}+)字下げ(?:、折り返して#{Pattern::NUMS}+字下げ|、本文とはアキナシ)?/
-        enter_block(Tree::Top)
+        enter_block(Tree::Top, [], Regexp.last_match[1])
+      when /(?:ここで字下げ|引用文)(?:終わ?り|、.+終わ?り)(?:|、１行アキ)?/
+        exit_block(Tree::Top)
       end
     end
 
