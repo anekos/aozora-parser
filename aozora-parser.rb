@@ -463,8 +463,13 @@ module AozoraParser
 
     private
 
+    def make_node (node, *args)
+      return node if Tree::Node === node
+      node = node.new(*args)
+    end
+
     def put (node, *args)
-      node = node.new(*args) unless Tree::Node === node
+      node = make_node(node, *args)
       last = @current_block.last
       if Tree::Text === node and Tree::Text === last
         last.concat(node)
@@ -475,7 +480,9 @@ module AozoraParser
     end
 
     def enter_block (left_node, *args)
-      block = put(left_node, *args)
+      left_node = make_node(left_node, *args)
+      exit_block(left_node.class) if @current_block.class === left_node
+      block = put(left_node)
       raise Error::Implementation, "Not Block: #{block}" unless Tree::Block === block
       @block_stack.push(Stack.new(@current_block, block))
       @current_block = block
