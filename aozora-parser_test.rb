@@ -492,6 +492,26 @@ EOT
     assert_equal Tree::Line.new(inner),   ts[1]
   end # }}}
 
+  def test_unkown # {{{
+    ts = Parser.parse <<EOT
+Hello
+［＃うちゅうだ！それはうちゅうだ！］
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Unknown.new(Token::Annotation.new('うちゅうだ！それはうちゅうだ！')),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
   def test_bold_near # {{{
     ts = Parser.parse("今日のところはねこ［＃「ねこ」は太字］をなめたい")
 

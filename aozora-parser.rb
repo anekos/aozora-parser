@@ -304,6 +304,15 @@ module AozoraParser
       end
     end # }}}
 
+    class Unknown < Node # {{{
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:token])
+
+      def initialize (token)
+        super()
+        @token = token
+      end
+    end # }}}
+
     # Annotations
 
     class Annotation < Block; end
@@ -533,6 +542,8 @@ module AozoraParser
         on_targeted(tok, Tree::Yoko)
       when /\A(.)Œ©o‚µ\Z/
         on_targeted(tok, Tree::Heading, Regexp.last_match[1])
+      else
+        put(Tree::Unknown, tok)
       end
     end
 
@@ -551,6 +562,8 @@ module AozoraParser
         put(Tree::SheetBreak)
       when /\A‰ü’š\/Z/
         put(Tree::SheetBreak)
+      else
+        put(Tree::Unknown, tok)
       end
     end
 
