@@ -21,6 +21,14 @@ module AozoraParser
         super("Unmatched block tag: Left is #{left_node}, but Right is #{right_node}")
       end
     end # }}}
+
+    class UnexpectedWord < Format # {{{
+      def initialize (word = nil)
+        msg = 'Unexpected word'
+        msg += ": #{word}" if word
+        super(msg)
+      end
+    end # }}}
   end # }}}
 
   module Token # {{{

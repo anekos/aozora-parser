@@ -678,6 +678,63 @@ EOT
         ]
       )
     assert_equal except, ts
+
+    # 文書のはじめ
+    ts = Parser.parse <<EOT
+［＃３字下げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Top.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 改ページの後
+    ts = Parser.parse <<EOT
+［＃改頁］
+［＃３字下げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::PageBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+  end # }}}
+
+  def test_top_oneline_invalid # {{{
+    # 字下げの場合、タグの前には文字はこないはず
+
+    assert_raises(Error::UnexpectedWord) do
+      ts = Parser.parse <<EOT
+Hello
+じゃま［＃３字下げ］ここだけさ
+World
+EOT
+    end
   end # }}}
 
   def test_bottom # {{{
