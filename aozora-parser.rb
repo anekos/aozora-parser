@@ -540,6 +540,10 @@ module AozoraParser
         enter_block(Tree::Top, [], Regexp.last_match[1])
       when /\A(?:ここで字下げ|引用文)(?:終わ?り|、.+終わ?り)(?:|、１行アキ)?\Z/
         exit_block(Tree::Top)
+      when /\A(?:ここ(?:から|より))?(?:地付き|、?地(?:から|より))(?:(#{Pattern::NUMS}+)字(?:空き|上げ|アキ))?\Z/
+        enter_block(Tree::Bottom, [], Regexp.last_match[1])
+      when /\Aここで、?(?:地付き|、?地上げ|字上げ)終わ?り\Z/
+        exit_block(Tree::Bottom)
       end
     end
 

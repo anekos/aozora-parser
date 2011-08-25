@@ -579,6 +579,37 @@ EOT
     assert_equal except, ts
   end # }}}
 
+  def test_bottom # {{{
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから地付き］
+ねこ
+なめ
+［＃ここで地付き終わり］
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ねこ'),
+              Tree::LineBreak.new,
+              Tree::Text.new('なめ'),
+              Tree::LineBreak.new
+            ],
+            nil
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
   def test_block_annotation # {{{
     # XXX 改行をいれる位置にちゅうい
     # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
