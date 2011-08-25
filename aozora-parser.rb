@@ -292,6 +292,9 @@ module AozoraParser
 
     class Document < Block; end
     class LineBreak < Node; end
+    class PageBreak < Node; end
+    class SheetBreak < Node; end
+
     class Ruby < Block # {{{
       attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:ruby])
 
@@ -544,6 +547,10 @@ module AozoraParser
         enter_block(Tree::Bottom, [], Regexp.last_match[1])
       when /\Aここで、?(?:地付き|、?地上げ|字上げ)終わ?り\Z/
         exit_block(Tree::Bottom)
+      when /\A改(?:ページ|頁)\Z/
+        put(Tree::SheetBreak)
+      when /\A改丁\/Z/
+        put(Tree::SheetBreak)
       end
     end
 
