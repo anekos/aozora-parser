@@ -25,6 +25,9 @@ module AozoraParser
 
   module Token # {{{
     class Base
+      def == (rhs)
+        self.class == rhs
+      end
     end
 
     class Text < Base
@@ -32,6 +35,10 @@ module AozoraParser
 
       def initialize (text)
         @text = text
+      end
+
+      def == (rhs)
+        super(rhs) and @text == rhs.text
       end
     end
 
@@ -45,6 +52,10 @@ module AozoraParser
 
       def initialize (ruby)
         @ruby = ruby
+      end
+
+      def == (rhs)
+        super(rhs) and @ruby == rhs.ruby
       end
     end
 
@@ -63,6 +74,10 @@ module AozoraParser
           @target = m[1]
           @spec = m[2]
         end
+      end
+
+      def == (rhs)
+        super(rhs) and @whole == rhs.whole and @target == rhs.target and @spec == rhs.spec
       end
     end
 
