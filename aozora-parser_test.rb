@@ -505,6 +505,7 @@ EOT
           Tree::Text.new('Hello'),
           Tree::LineBreak.new,
           Tree::Unknown.new(Token::Annotation.new('Ç§ÇøÇ„Ç§ÇæÅIÇªÇÍÇÕÇ§ÇøÇ„Ç§ÇæÅI')),
+          Tree::LineBreak.new,
           Tree::Text.new('World'),
           Tree::LineBreak.new
         ]

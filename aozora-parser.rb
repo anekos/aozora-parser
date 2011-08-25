@@ -578,6 +578,7 @@ module AozoraParser
       when /\A‰ü’š\/Z/
         put(Tree::SheetBreak)
       else
+        @ignore_linebreak = false
         put(Tree::Unknown, tok)
       end
     end
