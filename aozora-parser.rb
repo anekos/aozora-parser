@@ -314,9 +314,11 @@ module AozoraParser
     end # }}}
 
     class Document < Block; end
-    class LineBreak < Node; end
-    class PageBreak < Node; end
-    class SheetBreak < Node; end
+
+    class Break < Node; end
+    class LineBreak < Break; end
+    class PageBreak < Break; end
+    class SheetBreak < Break; end
 
     class Ruby < Block # {{{
       attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:ruby])
@@ -465,6 +467,7 @@ module AozoraParser
       @current_block = @tree
       @block_stack = []
       @ignore_linebreak = false
+      @on_one_line_annotation = false
     end
 
     def parse (source)
@@ -482,6 +485,12 @@ module AozoraParser
           else
             put(Tree::LineBreak)
           end
+
+          if @on_one_line_annotation
+            exit_block(@on_one_line_annotation)
+            @on_one_line_annotation = false
+          end
+
           next
         end
 
@@ -585,6 +594,8 @@ module AozoraParser
         put(Tree::PageBreak)
       when /\A‰ü’š\/Z/
         put(Tree::SheetBreak)
+      when /\A(?:“V‚©‚ç)?(#{Pattern::NUMS}+)Žš‰º‚°?\Z/
+        on_indent(Tree::Top, Regexp.last_match[1])
       else
         @ignore_linebreak = false
         put(Tree::Unknown, tok)
@@ -597,6 +608,13 @@ module AozoraParser
         l, c, r = block.split_by_text(tok.target)
         [*l, klass.new(Tree::Block === c ? c.items : [c], *args), *r]
       end
+    end
+
+    def on_indent (klass, level)
+      raise Error::UnexpectedWord unless @current_block.last == nil or Tree::Break === @current_block.last
+      @ignore_linebreak = false
+      enter_block(klass, [], level)
+      @on_one_line_annotation = klass
     end
   end # }}}
 
