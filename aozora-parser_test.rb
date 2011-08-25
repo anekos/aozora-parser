@@ -839,6 +839,52 @@ EOT
 
   end # }}}
 
+  def test_ruby # {{{
+    ts = Parser.parse <<EOT
+Hello
+Œá”y‚Í”Ls‚Ë‚±t‚Å‚ ‚é‚º‚æB
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('Œá”y‚Í'),
+          Tree::Ruby.new([Tree::Text.new('”L')], '‚Ë‚±'),
+          Tree::Text.new('‚Å‚ ‚é‚º‚æB'),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  def test_ruby_with_bar # {{{
+    ts = Parser.parse <<EOT
+Hello
+Œá”y‚Íb’´‚©‚í‚¢‚¢¶–½‘Ìs‚Ë‚±t‚Å‚ ‚é‚º‚æB
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('Œá”y‚Í'),
+          Tree::Ruby.new([Tree::Text.new('’´‚©‚í‚¢‚¢¶–½‘Ì')], '‚Ë‚±'),
+          Tree::Text.new('‚Å‚ ‚é‚º‚æB'),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
   def test_block_annotation # {{{
     # XXX ‰üs‚ğ‚¢‚ê‚éˆÊ’u‚É‚¿‚ã‚¤‚¢
     # See: http://kumihan.aozora.gr.jp/layout2.html#jisage

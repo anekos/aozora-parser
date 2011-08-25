@@ -463,7 +463,7 @@ module AozoraParser
 
     def reset
       @tree = Tree::Document.new
-      @text_buffer = ''
+      @text_buffer = []
       @current_block = @tree
       @block_stack = []
       @ignore_linebreak = false
@@ -476,6 +476,19 @@ module AozoraParser
       tokens.each do
         |tok|
         next on_text(tok) if Token::Text === tok
+
+        if Token::Ruby === tok
+          if Tree::Ruby === @current_block
+            on_not_text
+            @current_block.instance_variable_set(:@ruby, tok.ruby)
+            exit_block(Tree::Ruby)
+          else
+            target = @text_buffer.pop
+            on_not_text
+            put(Tree::Ruby, [Tree::Text.new(target.text)], tok.ruby)
+          end
+          next
+        end
 
         on_not_text
 
@@ -499,6 +512,8 @@ module AozoraParser
         case tok
         when Token::Annotation
           on_annotation(tok)
+        when Token::RubyBar
+          enter_block(Tree::Ruby)
         end
       end
 
@@ -540,18 +555,18 @@ module AozoraParser
     end
 
     def on_end
-      raise Error::NoBlockEnd.new(@block_stack.last) unless @block_stack.empty?
+      raise Error::NoBlockEnd.new(@block_stack.last.block) unless @block_stack.empty?
     end
 
     def on_text (tok)
       @ignore_linebreak = false
-      @text_buffer += tok.text
+      @text_buffer << tok
     end
 
     def on_not_text
       return if @text_buffer.empty?
-      put(Tree::Text, @text_buffer)
-      @text_buffer = ''
+      put(Tree::Text, @text_buffer.map(&:text).join(''))
+      @text_buffer = []
     end
 
     def on_annotation (tok)
