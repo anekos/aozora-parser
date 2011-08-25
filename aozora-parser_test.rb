@@ -510,6 +510,27 @@ EOT
         ]
       )
     assert_equal except, ts
+
+
+    ts = Parser.parse <<EOT
+Hello
+ねこ［＃「ねこ」はうちゅうさ］
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('ねこ'),
+          Tree::Unknown.new(Token::Annotation.new('「ねこ」はうちゅうさ')),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
   end # }}}
 
   def test_bold_near # {{{
