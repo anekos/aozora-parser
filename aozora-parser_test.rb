@@ -470,6 +470,28 @@ EOT
     assert_instance_of Tree::LineBreak, ts[5]
   end # }}}
 
+  def test_target_annotation # {{{
+    ts = Parser.parse("今日のところはねこを［＃「ねこ」に傍点］なめたい")
+
+    assert_equal 3, ts.size
+    assert_instance_of Tree::Text,              ts[0]
+    assert_instance_of Tree::Text,              ts[2]
+    assert_equal       'をなめたい',            ts[2].text
+
+    inner = [Tree::Text.new('ねこ')]
+
+    assert_equal Tree::Dots.new(inner),   ts[1]
+
+    ts = Parser.parse("今日のところはねこを［＃「ねこ」は縦中横］なめたい")
+    assert_equal Tree::Yoko.new(inner),   ts[1]
+
+    ts = Parser.parse("今日のところはねこを［＃「ねこ」は太字］なめたい")
+    assert_equal Tree::Bold.new(inner),   ts[1]
+
+    ts = Parser.parse("今日のところはねこを［＃「ねこ」は傍線］なめたい")
+    assert_equal Tree::Line.new(inner),   ts[1]
+  end # }}}
+
   def test_bold_near # {{{
     ts = Parser.parse("今日のところはねこ［＃「ねこ」は太字］をなめたい")
 
@@ -484,22 +506,6 @@ EOT
     assert_instance_of Tree::Text,  bold[0]
     assert_equal       'ねこ',      bold.text
     assert_equal       'ねこ',      bold[0].text
-  end # }}}
-
-  def test_dots # {{{
-    ts = Parser.parse("今日のところはねこを［＃「ねこ」に傍点］なめたい")
-
-    assert_equal 3, ts.size
-    assert_instance_of Tree::Text,              ts[0]
-    assert_instance_of Tree::Dots,              ts[1]
-    assert_instance_of Tree::Text,              ts[2]
-    assert_equal       'をなめたい',            ts[2].text
-
-    dots = ts[1]
-    assert_equal 1, dots.size
-    assert_instance_of Tree::Text,  dots[0]
-    assert_equal       'ねこ',      dots.text
-    assert_equal       'ねこ',      dots[0].text
   end # }}}
 
   def test_dots_multi_line # {{{
