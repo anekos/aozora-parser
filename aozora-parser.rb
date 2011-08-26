@@ -11,19 +11,28 @@ module AozoraParser
     class Format < AozoraError; end
 
     class NoBlockEnd < Format # {{{
+      attr_reader :node
+
       def initialize (node)
+        @node = node
         super("Not found block end tag for #{node}")
       end
     end # }}}
 
     class UnmatchedBlock < Format # {{{
+      attr_reader :left_node, :right_node
+
       def initialize (left_node, right_node)
+        @left_node, @right_node = left_node, right_node
         super("Unmatched block tag: Left is #{left_node}, but Right is #{right_node}")
       end
     end # }}}
 
     class UnexpectedWord < Format # {{{
+      attr_reader :word
+
       def initialize (word = nil)
+        @word = word
         msg = 'Unexpected word'
         msg += ": #{word}" if word
         super(msg)
