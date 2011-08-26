@@ -375,6 +375,15 @@ module AozoraParser
     class Top < Leveled; end
     class Bottom < Leveled; end
     class Heading < Leveled; end
+
+    class Note < Annotation # {{{
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:spec])
+
+      def initialize (items, spec)
+        super(items)
+        @spec = spec
+      end
+    end # }}}
   end # }}}
 
   class Lexer # {{{
@@ -481,13 +490,14 @@ module AozoraParser
       @block_stack = []
       @ignore_linebreak = false
       @on_one_line_annotation = false
+      @tokens = nil
+      @tokens_pos = -1
     end
 
     def parse (source)
-      tokens = Lexer.lex(source)
+      @tokens = Lexer.lex(source)
 
-      tokens.each do
-        |tok|
+      while tok = get_token
         next on_text(tok) if Token::Text === tok
 
         if Token::Ruby === tok
@@ -526,9 +536,9 @@ module AozoraParser
         when Token::Annotation
           on_annotation(tok)
         when Token::RubyBar
-          enter_block(Tree::Ruby)
+          on_ruby_bar(tok)
         when Token::RiceMark
-          @text_buffer << tok
+          on_rice_mark(tok)
         else
           put(Tree::Unknown, tok)
         end
@@ -539,6 +549,32 @@ module AozoraParser
     end
 
     private
+
+    def next_token
+      @tokens[@tokens_pos + 1]
+    end
+
+    def get_token (klass = nil)
+      return unless @tokens_pos < @tokens.size
+      @tokens_pos += 1
+      result = @tokens[@tokens_pos]
+      if not klass or klass === result
+        result
+      else
+        unget_token
+        nil
+      end
+    end
+
+    def get_serial_token (klass)
+      result, tok = [], nil
+      result << tok while tok = get_token(klass)
+      result
+    end
+
+    def unget_token
+      @tokens_pos -= 1 if @tokens_pos >= 0
+    end
 
     def make_node (node, *args)
       return node if Tree::Node === node
@@ -651,6 +687,20 @@ module AozoraParser
       @ignore_linebreak = false
       enter_block(klass, [], level)
       @on_one_line_annotation = klass
+    end
+
+    def on_ruby_bar (tok)
+      enter_block(Tree::Ruby) unless Token::RiceMark === next_token
+    end
+
+    def on_rice_mark (tok)
+      marks_text = [tok].concat(get_serial_token(Token::RiceMark)).map(&:text).join('')
+      annotation = get_token(Token::Annotation)
+      if annotation
+        put(Tree::Note, [Tree::Text.new(marks_text)], annotation.whole)
+      else
+        put(Tree::Text, marks_text)
+      end
     end
   end # }}}
 

@@ -908,6 +908,88 @@ EOT
     assert_equal except, ts
   end # }}}
 
+  def test_rice_mark_with_annotation # {{{
+    ts = Parser.parse <<EOT
+Hello
+私は｜※※※※［＃ねこ］が大好きです。
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('私は'),
+          Tree::Note.new([Tree::Text.new('※※※※')], 'ねこ'),
+          Tree::Text.new('が大好きです。'),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    ts = Parser.parse <<EOT
+Hello
+私は｜※［＃ねこ］が大好きです。
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('私は'),
+          Tree::Note.new([Tree::Text.new('※')], 'ねこ'),
+          Tree::Text.new('が大好きです。'),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    ts = Parser.parse <<EOT
+Hello
+私は※※※※［＃ねこ］が大好きです。
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('私は'),
+          Tree::Note.new([Tree::Text.new('※※※※')], 'ねこ'),
+          Tree::Text.new('が大好きです。'),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    ts = Parser.parse <<EOT
+Hello
+私は※［＃ねこ］が大好きです。
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('私は'),
+          Tree::Note.new([Tree::Text.new('※')], 'ねこ'),
+          Tree::Text.new('が大好きです。'),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
   def test_block_annotation # {{{
     # XXX 改行をいれる位置にちゅうい
     # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
