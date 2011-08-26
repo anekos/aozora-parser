@@ -1017,6 +1017,19 @@ Hello
 EOT
     end
 
+    begin
+      ts = Parser.parse <<EOT
+Hello
+［＃ここから３字下げ］
+なめ
+［＃ここから地付き］
+［＃ここで地付き終わり］
+EOT
+    rescue => e
+      assert_instance_of Error::NoBlockEnd,   e
+      assert_instance_of Tree::Top,           e.node
+    end
+
     ts = Parser.parse <<EOT
 Hello
 ［＃ここから３字下げ］

@@ -572,7 +572,7 @@ module AozoraParser
     end
 
     def on_end
-      raise Error::NoBlockEnd.new(@block_stack.last.block) unless @block_stack.empty?
+      raise Error::NoBlockEnd.new(@current_block) unless @block_stack.empty?
     end
 
     def on_text (tok)
