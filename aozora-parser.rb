@@ -40,6 +40,14 @@ module AozoraParser
     end # }}}
   end # }}}
 
+  module Util # {{{
+    def self.text_to_number (s)
+      num = s.tr('‚O-‚X', '0-9').tr('ˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã', '1-9')
+      raise Error::Format.new("Not a number: #{s}") unless /\A\d+\Z/ === num
+      num.to_i
+    end
+  end # }}}
+
   module Token # {{{
     class Base
       def == (rhs)
@@ -103,6 +111,84 @@ module AozoraParser
     end
 
     class Tokens < Array; end
+  end # }}}
+
+  module Char # {{{
+    class Char # {{{
+      def == (rhs)
+        self.class == rhs.class
+      end
+
+      def === (rhs)
+        self.class == rhs.class
+      end
+    end # }}}
+
+    class JIS < Char # {{{
+      def self.parse (s)
+        m = s.match(/(\d+)-(\d+)(?:-(\d+))?/)
+        raise 'No code' unless m
+        code = (1 .. 3).map {|i| m[i] } .compact.map {|it| it.to_i }
+
+        if m = s.match(/u([^{]+{[^v]+)v/)
+          parts = m[1].split(/{/)
+          parts = nil if parts.size < 2
+        end
+
+        if m = s.match(/‘æ(.)…€/)
+          level = Util.text_to_number(m[1])
+        end
+
+        self.new(code, level, parts)
+      rescue => e
+        raise Error::Format.new("Cannot convert to JIS char (#{e}): #{s}")
+      end
+
+      attr_reader :code, :level, :parts
+
+      def initialize (code, level, parts)
+        @code, @level, @parts = code, level, parts
+      end
+
+      def == (rhs)
+        super(rhs) and @code == rhs.code and @level == rhs.level and @parts == rhs.parts
+      end
+
+      def === (rhs)
+        super(rhs) and @code == rhs.code
+      end
+    end # }}}
+
+    class Unicode < Char # {{{
+      def self.parse(s)
+        m = s.match(/unicode/i === s ? /unicode([\da-f]{4})/i : /([\da-f]{4})/i)
+        raise 'No code' unless m
+        code = m[1].to_i(16)
+
+        if m = s.match(/u([^{]+{[^v]+)v/)
+          parts = m[1].split(/{/)
+          parts = nil if parts.size < 2
+        end
+
+        self.new(code, parts)
+      rescue => e
+        raise Error::Format.new("Cannot convert to Unicode char (#{e}): #{s}")
+      end
+
+      attr_reader :code, :parts
+
+      def initialize (code, parts)
+        @code, @parts = code, parts
+      end
+
+      def == (rhs)
+        super(rhs) and @code == rhs.code and @parts == rhs.parts
+      end
+
+      def === (rhs)
+        super(rhs) and @code == rhs.code
+      end
+    end # }}}
   end # }}}
 
   module Tree # {{{
@@ -384,6 +470,46 @@ module AozoraParser
         @spec = spec
       end
     end # }}}
+
+    class ExternalChar < Annotation # {{{
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:spec])
+
+      def initialize (items, spec)
+        super(items)
+        @spec = spec
+      end
+    end # }}}
+
+    class ExternalCharCode < ExternalChar # {{{
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:char])
+      CharClass = nil
+
+      def initialize (items, spec, char = nil)
+        super(items, spec)
+
+        if char
+          @char = char
+        else
+          parse_spec
+        end
+      end
+
+      private
+
+      def parse_spec
+        klass = self.class::CharClass
+        raise Error::Implementation.new("This class should not be used: #{self.class}") unless klass
+        @char = klass.parse(@spec)
+      end
+    end # }}}
+
+    class JIS < ExternalCharCode
+      CharClass = AozoraParser::Char::JIS
+    end
+
+    class Unicode < ExternalCharCode
+      CharClass = AozoraParser::Char::Unicode
+    end
   end # }}}
 
   class Lexer # {{{
@@ -697,9 +823,21 @@ module AozoraParser
       marks_text = [tok].concat(get_serial_token(Token::RiceMark)).map(&:text).join('')
       annotation = get_token(Token::Annotation)
       if annotation
-        put(Tree::Note, [Tree::Text.new(marks_text)], annotation.whole)
+        on_note(marks_text, annotation)
       else
         put(Tree::Text, marks_text)
+      end
+    end
+
+    def on_note (marks_text, annotation)
+      inner = [Tree::Text.new(marks_text)]
+      case annotation.whole
+      when /unicode/i
+        put(Tree::Unicode, inner, annotation.whole)
+      when /…€|\d+-\d+/i
+        put(Tree::JIS, inner, annotation.whole)
+      else
+        put(Tree::Note, inner, annotation.whole)
       end
     end
   end # }}}

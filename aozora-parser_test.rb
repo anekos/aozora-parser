@@ -441,6 +441,60 @@ class TestTreeRuby < MiniTest::Unit::TestCase # {{{
   end # }}}
 end # }}}
 
+class TestTreeJIS < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_new # {{{
+    t = Tree::JIS.new([Tree::Text.new('foo')], 'uœM{™dvA‘æ4…€2-12-11')
+    assert_equal [2, 12, 11],     t.char.code
+    assert_equal 4,               t.char.level
+    assert_equal ['œM', '™d'],    t.char.parts
+
+    t = Tree::JIS.new([Tree::Text.new('foo')], 'uœM{™dvA‘æŽl…€2-12-11')
+    assert_equal 4,               t.char.level
+
+    t = Tree::JIS.new([Tree::Text.new('foo')], 'uœM{™dvA‘æ‚S…€2-12-11')
+    assert_equal 4,               t.char.level
+  end # }}}
+end # }}}
+
+class TestTreeUnicode < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_new # {{{
+    t = Tree::Unicode.new([Tree::Text.new('¦')], 'u‚±‚ë‚à‚Ö‚ñ{ŒÉvAunicode8932')
+    assert_equal [Tree::Text.new('¦')],  t.items
+    assert_equal 0x8932,                  t.char.code
+    assert_equal ['‚±‚ë‚à‚Ö‚ñ', 'ŒÉ'],    t.char.parts
+  end # }}}
+end # }}}
+
+class TestTreeChar < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_jis # {{{
+    c = Char::JIS.parse('uœM{™dvA‘æ4…€2-12-11')
+    assert_equal 4,             c.level
+    assert_equal [2, 12, 11],   c.code
+    assert_equal ['œM', '™d'],  c.parts
+
+    c = Char::JIS.parse('u‚Ë‚±‚Ý‚Ý{™dvA‘æ4…€2-12-11')
+    assert_equal 4,                   c.level
+    assert_equal [2, 12, 11],         c.code
+    assert_equal ['‚Ë‚±‚Ý‚Ý', '™d'],  c.parts
+
+    assert_raises(Error::Format) { Char::JIS.parse('uœM{™dvA‘æ4…€2+12+11') }
+  end # }}}
+
+  def test_unicode # {{{
+    c = Char::Unicode.parse('u‚±‚ë‚à‚Ö‚ñ{ŒÉvAunicode8932')
+    assert_equal 0x8932,                c.code
+    assert_equal ['‚±‚ë‚à‚Ö‚ñ', 'ŒÉ'],  c.parts
+
+    assert_raises(Error::Format) { p Char::Unicode.parse('u‚±‚ë‚à‚Ö‚ñ{ŒÉvAunicode89x2').code }
+  end # }}}
+end # }}}
+
 class TestParser < MiniTest::Unit::TestCase # {{{
   include AozoraParser
 
@@ -1136,6 +1190,33 @@ EOT
             ],
             3
           )
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  def test_gaiji_jis # {{{
+    ts = Parser.parse('‘p‚Æ‚¢‚¤‘p‚ð‘~‚«¦m”uœM{™dvA‘æ4…€2-12-11n‚µ‚½‚è')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('‘p‚Æ‚¢‚¤‘p‚ð‘~‚«'),
+          Tree::JIS.new([Tree::Text.new('¦')], 'uœM{™dvA‘æ4…€2-12-11'),
+          Tree::Text.new('‚µ‚½‚è')
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  def test_gaiji_unicode # {{{
+    ts = Parser.parse('–Ø–È‚Ìã’…‚Æb¦m”u‚±‚ë‚à‚Ö‚ñ{ŒÉvAunicode8932nŽqsƒN[ƒVt‚ð‚Í‚¢‚½—')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('–Ø–È‚Ìã’…‚Æ'),
+          Tree::Unicode.new([Tree::Text.new('¦')], 'u‚±‚ë‚à‚Ö‚ñ{ŒÉvAunicode8932'),
+          Tree::Ruby.new([Tree::Text.new('Žq')], 'ƒN[ƒV'),
+          Tree::Text.new('‚ð‚Í‚¢‚½—')
         ]
       )
     assert_equal except, ts
