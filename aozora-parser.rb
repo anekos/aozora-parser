@@ -144,7 +144,7 @@ module AozoraParser
       attr_reader *(PROPERTY_NAMES = [:items])
 
       def initialize (items = [])
-        raise Error::Implementation, "It's not Array: #{items}" unless Array === items
+        raise Error::Implementation, "It's not Array: #{items.inspect}" unless Array === items
         @items = items
       end
 
