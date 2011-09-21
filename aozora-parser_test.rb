@@ -158,6 +158,19 @@ EOT
     assert_equal          'forth line',       ts[6].text
     assert_equal          8,                  ts.size
   end # }}}
+
+  def test_image_tag_line # {{{
+    ts = Lexer.lex <<-EOT
+first line
+second line
+<img src="img/00.jpg">
+third line
+EOT
+    assert_equal          7,                                ts.size
+    assert_equal          'first line',                     ts[0].text
+    assert_equal          Token::Image.new('img/00.jpg'),   ts[4]
+    assert_equal          'third line',                     ts[5].text
+  end # }}}
 end # }}}
 
 # Parser
@@ -1284,6 +1297,17 @@ EOT
 EOT
     assert_equal 1, ts[0].token.line
     assert_equal 3, ts[5].token.line
+  end # }}}
+
+  def test_image_tag # {{{
+    # TODO ê≥ämÇ≈Ç»Ç¢èÍçáÇ™Ç†ÇËÇªÇ§
+
+    ts = Parser.parse <<-EOT
+Ç†Ç¢Ç§Ç¶Ç®
+<img src="img/00.jpg">
+Ç≥ÇµÇ∑ÇπÇª
+EOT
+    assert_equal Tree::Image.new('img/00.jpg'),   ts[2]
   end # }}}
 end # }}}
 

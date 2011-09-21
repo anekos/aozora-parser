@@ -119,6 +119,18 @@ module AozoraParser
       end
     end
 
+    class Image < Base
+      attr_reader :source
+
+      def initialize (source)
+        @source = source
+      end
+
+      def == (rhs)
+        super(rhs) and @source == rhs.source
+      end
+    end
+
     class Tokens < Array; end
   end # }}}
 
@@ -439,6 +451,18 @@ module AozoraParser
 
     class Document < Block; end
 
+    class Image < Node # {{{
+      attr_reader *(PROPERTY_NAMES = [:source])
+
+      def initialize (source)
+        @source = source
+      end
+
+      def == (value)
+        self.class == value.class and @source == value.source
+      end
+    end # }}}
+
     class Break < Node; end
     class LineBreak < Break; end
     class PageBreak < Break; end
@@ -572,8 +596,8 @@ module AozoraParser
         end
 
         unless in_notes
-          read_line(line)
-          put(Token::LineBreak) if lb
+          ignore_linebreak = read_line(line)
+          put(Token::LineBreak) if lb and !ignore_linebreak
         end
 
         in_notes = false if in_notes and Pattern::NoteLine === line
@@ -582,7 +606,16 @@ module AozoraParser
       end
     end
 
+    def iamge_tag_line (line)
+    end
+
+    # ŽŸ‚Ì‰üs‚ð–³Ž‹‚·‚é‚©‚Ç‚¤‚©‚ð•Ô‚· (ignore_linebreak)
     def read_line (line)
+      if img_tag_line = line.match(Pattern::ImageTagLine)
+        put(Token::Image, img_tag_line[1].gsub(/\A["']|["']\Z/, '').strip)
+        return true
+      end
+
       buf = ''
 
       while not line.empty?
@@ -611,6 +644,8 @@ module AozoraParser
       end
 
       put(Token::OtherText, buf) unless buf.empty?
+
+      return false
     end
 
     def read_pattern (pattern, klass, line)
@@ -634,6 +669,7 @@ module AozoraParser
   module Pattern # {{{
     NUMS = /[‚O-‚X0-9]/
     NoteLine = /\A-{20,}\Z/
+    ImageTagLine = /\A\s*<img\s+src=(".+?"|'.+?'|.+\s)\s*\/?>\s*\Z/
   end # }}}
 
   class Parser # {{{
@@ -701,6 +737,8 @@ module AozoraParser
         @ignore_linebreak = false
 
         case tok
+        when Token::Image
+          put(Tree::Image, tok.source)
         when Token::Annotation
           on_annotation(tok)
         when Token::RubyBar
