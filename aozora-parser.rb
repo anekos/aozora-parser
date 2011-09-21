@@ -681,6 +681,11 @@ module AozoraParser
       parser.tree
     end
 
+    def self.parse_file (source_filepath, encoding = 'Shift_JIS')
+      source = File.open(source_filepath, "r:#{encoding}") {|file| file.read }
+      self.parse(source)
+    end
+
     attr_reader :tree
 
     def initialize
