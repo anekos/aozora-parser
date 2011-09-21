@@ -1300,8 +1300,6 @@ EOT
   end # }}}
 
   def test_image_tag # {{{
-    # TODO ³Šm‚Å‚È‚¢ê‡‚ª‚ ‚è‚»‚¤
-
     ts = Parser.parse <<-EOT
 ‚ ‚¢‚¤‚¦‚¨
 <img src="img/00.jpg">
