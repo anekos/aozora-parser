@@ -128,7 +128,7 @@ EOT
     assert_equal 3, ts.last.line
   end # }}}
 
-  def test_aozora_notes
+  def test_aozora_notes # {{{
     ts = Lexer.lex <<-EOT
 first line
 second line
@@ -157,7 +157,7 @@ EOT
     assert_instance_of    Token::LineBreak,   ts[1]
     assert_equal          'forth line',       ts[6].text
     assert_equal          8,                  ts.size
-  end
+  end # }}}
 end # }}}
 
 # Parser
