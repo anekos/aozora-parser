@@ -1297,6 +1297,17 @@ EOT
 EOT
     assert_equal 1, ts[0].token.line
     assert_equal 3, ts[5].token.line
+
+    ts = Parser.parse <<-EOT
+あいうえお
+かきくけこ
+［＃ここから３字下げ］
+［＃ここで字下げ終わり］
+EOT
+    assert_equal        1,                      ts[0].token.line
+    assert_equal        Tree::LineBreak.new,    ts[3]
+    assert_instance_of  Tree::Top,              ts[4]
+    assert_equal        3,                      ts[4].token.line
   end # }}}
 
   def test_image_tag # {{{

@@ -62,6 +62,10 @@ module AozoraParser
       def == (rhs)
         self.class == rhs.class
       end
+
+      def set_position (line, column)
+        @line, @column = line, column
+      end
     end
 
     class Text < Base
@@ -658,6 +662,7 @@ module AozoraParser
 
     def put (token, *args)
       if Token::Base === token
+        token.set_position(@line_number, @column)
         @tokens << token
       else
         # TODO column ‚Í–¢ŽÀ‘•
