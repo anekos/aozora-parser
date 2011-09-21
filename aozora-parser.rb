@@ -27,7 +27,10 @@ module AozoraParser
 
       def initialize (node)
         @node = node
-        super("Not found block end tag for #{node}")
+      end
+
+      def to_s
+        "Not found block end tag for #{node}"
       end
     end # }}}
 
@@ -36,7 +39,10 @@ module AozoraParser
 
       def initialize (left_node, right_node)
         @left_node, @right_node = left_node, right_node
-        super("Unmatched block tag: Left is #{left_node}, but Right is #{right_node}")
+      end
+
+      def to_s
+        "Unmatched block tag: Left is #{left_node}, but Right is #{right_node}"
       end
     end # }}}
 
@@ -45,10 +51,21 @@ module AozoraParser
 
       def initialize (word = nil)
         @word = word
+      end
+
+      def to_s
         msg = 'Unexpected word'
         msg += ": #{word}" if word
-        super(msg)
+        msg
       end
+    end # }}}
+
+    def self.add_context_info (line, column, exception) # {{{
+      exception.instance_variable_set(:@new_message, "#{exception} at L#{line}")
+      def exception.to_s
+        @new_message
+      end
+      exception
     end # }}}
   end # }}}
 
@@ -774,6 +791,13 @@ module AozoraParser
 
       on_not_text
       on_end
+    rescue => e
+      if current_token
+        Error.add_context_info(current_token.line, current_token.column, e)
+        raise e
+      else
+        raise e
+      end
     end
 
     private
@@ -838,6 +862,7 @@ module AozoraParser
 
     def exit_block (right_node_class)
       old = @block_stack.pop
+      raise Error::NoBlockStart.new(right_node_class) unless old
       raise Error::UnmatchedBlock.new(old.left_node, right_node_class) unless old.left_node.class == right_node_class
       @current_block = old.block
     end
