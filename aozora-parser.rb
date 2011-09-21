@@ -230,7 +230,7 @@ module AozoraParser
         self.name.split(/::/).last
       end
 
-      attr_reader :token
+      attr_accessor :token
 
       def line
         @token and @token.line
@@ -317,8 +317,8 @@ module AozoraParser
           lt = node.text[0 ... pos]
           rt = node.text[pos .. -1]
 
-          l.push(Tree::Text.new(lt)) unless lt.empty?
-          r.unshift(Tree::Text.new(rt)) unless rt.empty?
+          l.push(Tree::Text.create(node.token, lt)) unless lt.empty?
+          r.unshift(Tree::Text.create(node.token, rt)) unless rt.empty?
 
           return [compact(l), compact(r)]
         end
@@ -408,9 +408,9 @@ module AozoraParser
         return nil if list.empty?
 
         if list.all? {|node| Tree::Text === node }
-          Tree::Text.new(list.map(&:text).join(''))
+          Tree::Text.create(list.first.token, list.map(&:text).join(''))
         else
-          Tree::Block.new(list)
+          Tree::Block.create(list.first.token, list)
         end
       end
     end # }}}
@@ -435,8 +435,8 @@ module AozoraParser
         l = @text[0 ... position_of_second]
         r = @text[position_of_second .. -1]
         [
-          l.empty? ? nil : Text.new(l),
-          r.empty? ? nil : Text.new(r)
+          l.empty? ? nil : Text.create(self.token, l),
+          r.empty? ? nil : Text.create(self.token, r)
         ]
       end
 
@@ -446,9 +446,9 @@ module AozoraParser
         ep = sp + t.size - 1
 
         [
-          sp > 0 ? Text.new(@text[0 .. sp - 1]) : nil,
-          Text.new(@text[sp .. ep]),
-          ep + 1 < @text.size ? Text.new(@text[ep + 1 .. -1]) : nil
+          sp > 0 ? Text.create(self.token, @text[0 .. sp - 1]) : nil,
+          Text.create(self.token, @text[sp .. ep]),
+          ep + 1 < @text.size ? Text.create(self.token, @text[ep + 1 .. -1]) : nil
         ]
       end
     end # }}}
@@ -722,7 +722,7 @@ module AozoraParser
           else
             target = @text_buffer.pop
             on_not_text
-            put(Tree::Ruby, [Tree::Text.new(target.text)], tok.ruby)
+            put(Tree::Ruby, [make_node(Tree::Text, target.text)], tok.ruby)
           end
           next
         end
@@ -797,7 +797,10 @@ module AozoraParser
     end
 
     def make_node (node, *args)
-      return node if Tree::Node === node
+      if Tree::Node === node
+        node.token = current_token
+        return node
+      end
       node = node.create(current_token, *args)
     end
 
@@ -896,7 +899,7 @@ module AozoraParser
       @current_block.replace_last_block do
         |block|
         l, c, r = block.split_by_text(tok.target)
-        [*l, klass.new(Tree::Block === c ? c.items : [c], *args), *r]
+        [*l, klass.create(current_token, Tree::Block === c ? c.items : [c], *args), *r]
       end
     end
 
@@ -924,7 +927,7 @@ module AozoraParser
     end
 
     def on_note (marks_text, annotation)
-      inner = [Tree::Text.new(marks_text)]
+      inner = [make_node(Tree::Text, marks_text)]
       case annotation.whole
       when /unicode/i
         put(Tree::Unicode, inner, annotation.whole)
