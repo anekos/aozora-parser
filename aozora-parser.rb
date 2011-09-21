@@ -892,6 +892,7 @@ module AozoraParser
   class TreeWalker # {{{
     def start (tree)
       walk(tree)
+      on_end
     end
 
     private
@@ -906,6 +907,9 @@ module AozoraParser
       else
         puts "#{indent}<#{name} />"
       end
+    end
+
+    def on_end
     end
 
     def walk (node, level = 0)
