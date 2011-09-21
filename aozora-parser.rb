@@ -1,5 +1,5 @@
 #!/usr/bin/ruby
-# vim:set fileencoding=cp932 :
+# vim:set fileencoding=Shift_JIS :
 
 require 'stringio'
 
