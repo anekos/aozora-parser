@@ -875,6 +875,39 @@ module AozoraParser
     end
   end # }}}
 
+  class TreeWalker # {{{
+    def start (tree)
+      walk(tree)
+    end
+
+    private
+
+    def on_node (node, level, &block)
+      name = node.class.display_name
+      indent = '  ' * level
+      if block_given?
+        puts "#{indent}<#{name}>"
+        yield
+        puts "#{indent}</#{name}>"
+      else
+        puts "#{indent}<#{name} />"
+      end
+    end
+
+    def walk (node, level = 0)
+      if AozoraParser::Tree::Block === node
+        on_node(node, level) do
+          node.items.each do
+            |child|
+            walk(child, level + 1)
+          end
+        end
+      else
+        on_node(node, level)
+      end
+    end
+  end # }}}
+
   def self.make_simple_inspect # {{{
     require 'pp'
     Tree::Node.class_eval do
