@@ -50,6 +50,15 @@ module AozoraParser
 
   module Token # {{{
     class Base
+      def self.create (line, column, *args)
+        obj = self.new(*args)
+        obj.instance_variable_set(:@line, line)
+        obj.instance_variable_set(:@column, column)
+        obj
+      end
+
+      attr_reader :line, :column
+
       def == (rhs)
         self.class == rhs
       end
@@ -195,8 +204,24 @@ module AozoraParser
     class Node # {{{
       PROPERTY_NAMES = []
 
+      def self.create (token, *args)
+        obj = self.new(*args)
+        obj.instance_variable_set(:@token, token)
+        obj
+      end
+
       def self.display_name
         self.name.split(/::/).last
+      end
+
+      attr_reader :token
+
+      def line
+        @token and @token.line
+      end
+
+      def column
+        @token and @token.column
       end
 
       def pretty_print (pp)
@@ -522,6 +547,7 @@ module AozoraParser
     attr_reader :tokens
 
     def initialize
+      @line_number = 0
       @tokens = Token::Tokens.new
     end
 
@@ -534,6 +560,8 @@ module AozoraParser
 
     def read_source (source)
       while line = source.gets
+        @line_number += 1
+
         lb = line.chomp!
 
         read_line(line)
@@ -585,7 +613,8 @@ module AozoraParser
       if Token::Base === token
         @tokens << token
       else
-        @tokens << token.new(*args)
+        # TODO column ‚Í–¢ŽÀ‘•
+        @tokens << token.create(@line_number, @column, *args)
       end
     end
   end # }}}
@@ -676,6 +705,10 @@ module AozoraParser
 
     private
 
+    def current_token
+      @tokens[@tokens_pos]
+    end
+
     def next_token
       @tokens[@tokens_pos + 1]
     end
@@ -704,7 +737,7 @@ module AozoraParser
 
     def make_node (node, *args)
       return node if Tree::Node === node
-      node = node.new(*args)
+      node = node.create(current_token, *args)
     end
 
     def put (node, *args)

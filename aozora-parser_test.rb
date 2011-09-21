@@ -106,6 +106,27 @@ class TestLexer < MiniTest::Unit::TestCase # {{{
     assert_instance_of Token::OtherText,              ts[3]
     assert_equal      'bar',                          ts[3].text
   end # }}}
+
+  def test_line_number # {{{
+    ts = Lexer.lex <<-EOT
+hoge
+moge
+mige
+EOT
+    assert_equal 1, ts[0].line
+    assert_equal 1, ts[1].line
+    assert_equal 2, ts[2].line
+    assert_equal 2, ts[3].line
+    assert_equal 3, ts[4].line
+    assert_equal 3, ts[5].line
+
+    ts = Lexer.lex <<-EOT
+今日のところはねこ［＃「ねこ」に傍点］をなめたい
+moge
+mige
+EOT
+    assert_equal 3, ts.last.line
+  end # }}}
 end # }}}
 
 # Parser
@@ -1220,6 +1241,18 @@ EOT
         ]
       )
     assert_equal except, ts
+  end # }}}
+
+  def test_line_number # {{{
+    # TODO 正確でない場合がありそう
+
+    ts = Parser.parse <<-EOT
+あいうえお
+かきくけこ
+さしすせそ
+EOT
+    assert_equal 1, ts[0].token.line
+    assert_equal 3, ts[5].token.line
   end # }}}
 end # }}}
 
