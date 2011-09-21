@@ -202,7 +202,7 @@ module AozoraParser
 
   module Tree # {{{
     class Node # {{{
-      PROPERTY_NAMES = []
+      PROPERTY_NAMES = [:token]
 
       def self.create (token, *args)
         obj = self.new(*args)
