@@ -10,6 +10,18 @@ module AozoraParser
     class AozoraError < StandardError; end
     class Format < AozoraError; end
 
+    class NoBlockStart < Format # {{{
+      attr_reader :right_node_class
+
+      def initialize (right_node_class)
+        @right_node_class = right_node_class
+      end
+
+      def to_s
+        "Not found block start tag for #{right_node_class}"
+      end
+    end # }}}
+
     class NoBlockEnd < Format # {{{
       attr_reader :node
 
