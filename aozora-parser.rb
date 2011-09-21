@@ -60,7 +60,7 @@ module AozoraParser
       attr_reader :line, :column
 
       def == (rhs)
-        self.class == rhs
+        self.class == rhs.class
       end
     end
 
