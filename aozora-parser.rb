@@ -538,6 +538,8 @@ module AozoraParser
   end # }}}
 
   class Lexer # {{{
+    NoteLine = /\A-{20,}\Z/
+
     def self.lex (source)
       instance = self.new
       instance.lex(source)
@@ -559,14 +561,26 @@ module AozoraParser
     private
 
     def read_source (source)
+      prev_line = nil
+
       while line = source.gets
         @line_number += 1
 
         lb = line.chomp!
 
-        read_line(line)
+        if NoteLine === prev_line and /テキスト中に現れる記号について/ === line
+          in_notes = true
+          @tokens.pop(2)
+        end
 
-        put(Token::LineBreak) if lb
+        unless in_notes
+          read_line(line)
+          put(Token::LineBreak) if lb
+        end
+
+        in_notes = false if in_notes and NoteLine === line
+
+        prev_line = line
       end
     end
 

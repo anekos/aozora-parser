@@ -127,6 +127,37 @@ mige
 EOT
     assert_equal 3, ts.last.line
   end # }}}
+
+  def test_aozora_notes
+    ts = Lexer.lex <<-EOT
+first line
+second line
+third line
+forth line
+EOT
+    assert_equal 8,  ts.size
+
+    ts = Lexer.lex <<-EOT
+first line
+second line
+-------------------------------------------------------
+【テキスト中に現れる記号について】
+
+《》：ルビ
+（例）沽券《こけん》
+
+［＃］：入力者注　主に外字の説明や、傍点の位置の指定
+　　　（数字は、JIS X 0213の面区点番号、または底本のページと行数）
+（例）2［＃「2」はローマ数字、1-13-22］
+-------------------------------------------------------
+third line
+forth line
+EOT
+    assert_equal          'first line',       ts[0].text
+    assert_instance_of    Token::LineBreak,   ts[1]
+    assert_equal          'forth line',       ts[6].text
+    assert_equal          8,                  ts.size
+  end
 end # }}}
 
 # Parser
