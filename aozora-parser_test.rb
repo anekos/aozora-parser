@@ -779,6 +779,67 @@ EOT
     assert_equal except, ts
   end # }}}
 
+  def test_top__old_style # {{{
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから改行天付き］
+一、ねこのかわいさで世界を征服し、地球が猫だらけになる
+一、地球が爆発する
+［＃ここで字下げ終わり］
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('一、ねこのかわいさで世界を征服し、地球が猫だらけになる'),
+              Tree::LineBreak.new,
+              Tree::Text.new('一、地球が爆発する'),
+              Tree::LineBreak.new
+            ],
+            nil
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから改行天付き、折り返して２字下げ］
+一、ねこのかわいさで世界を征服し、地球が猫だらけになる
+一、地球が爆発する
+［＃ここで字下げ終わり］
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::TopWithTurn.new(
+            [
+              Tree::Text.new('一、ねこのかわいさで世界を征服し、地球が猫だらけになる'),
+              Tree::LineBreak.new,
+              Tree::Text.new('一、地球が爆発する'),
+              Tree::LineBreak.new
+            ],
+            nil,
+            2
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
   def test_top_oneline # {{{
     # XXX 字下げの改行をいれる位置は Top の中？外？
     # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
