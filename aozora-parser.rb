@@ -785,7 +785,12 @@ module AozoraParser
           else
             target = @text_buffer.pop
             on_not_text
-            put(Tree::Ruby, [make_node(Tree::Text, target.text)], tok.ruby)
+            if target
+              put(Tree::Ruby, [make_node(Tree::Text, target.text)], tok.ruby)
+            else
+              target = @current_block.items.pop
+              put(Tree::Ruby, [target], tok.ruby)
+            end
           end
           next
         end

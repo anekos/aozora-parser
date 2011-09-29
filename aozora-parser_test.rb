@@ -1097,6 +1097,22 @@ EOT
     assert_equal except, ts
   end # }}}
 
+  def test_ruby__with_annotation # {{{
+    ts = Parser.parse('碍子を※［＃「てへん＋丑」、第4水準2-12-93］《ね》じこんだり')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('碍子を'),
+          Tree::Ruby.new(
+            [Tree::JIS.new([Tree::Text.new('※')], 'てへん＋丑」、第4水準2-12-93')],
+            'ね'
+          ),
+          Tree::Text.new('じこんだり')
+        ]
+      )
+    assert_equal except, ts
+  end
+
   def test_rice_mark # {{{
     # XXX ※は特に何もなければ、そのまま出力する
 
