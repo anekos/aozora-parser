@@ -747,6 +747,38 @@ EOT
     assert_equal except, ts
   end # }}}
 
+  def test_top_with_turn # {{{
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから１字下げ、折り返して３字下げ］
+ねこ
+なめ
+［＃ここで字下げ終わり］
+World
+EOT
+
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::TopWithTurn.new(
+            [
+              Tree::Text.new('ねこ'),
+              Tree::LineBreak.new,
+              Tree::Text.new('なめ'),
+              Tree::LineBreak.new
+            ],
+            1,
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
   def test_top_oneline # {{{
     # XXX 字下げの改行をいれる位置は Top の中？外？
     # See: http://kumihan.aozora.gr.jp/layout2.html#jisage

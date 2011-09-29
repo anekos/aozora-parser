@@ -430,6 +430,10 @@ module AozoraParser
         [l, c, r]
       end
 
+      def end_tag_class? (klass)
+        self.class == klass
+      end
+
       private
 
       def compact (list)
@@ -528,7 +532,7 @@ module AozoraParser
 
       def initialize (items = [], level = nil)
         super(items)
-        @level = String === level ?  level.tr('０-９', '0-9').to_i : level
+        @level = String === level ?  Util.text_to_number(level) : level
       end
 
       def == (rhs)
@@ -542,7 +546,37 @@ module AozoraParser
     class Yoko < Annotation; end
     class Top < Leveled; end
     class Bottom < Leveled; end
-    class Heading < Leveled; end
+
+    class Heading < Annotation # {{{
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:level])
+
+      def initialize (items = [], level)
+        super(items)
+        @level = level
+      end
+
+      def == (rhs)
+        super(rhs) and @level == rhs.level
+      end
+    end # }}}
+
+
+    class TopWithTurn < Top # {{{
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:turned_level])
+
+      def initialize (items, level, turned_level)
+        super(items, level)
+        @turned_level = String === turned_level ?  Util.text_to_number(turned_level) : turned_level
+      end
+
+      def == (rhs)
+        super(rhs) and @turned_level == rhs.turned_level
+      end
+
+      def end_tag_class? (klass)
+        super(klass) or klass == Top
+      end
+    end # }}}
 
     class Note < Annotation # {{{
       attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:spec])
@@ -863,7 +897,7 @@ module AozoraParser
     def exit_block (right_node_class)
       old = @block_stack.pop
       raise Error::NoBlockStart.new(right_node_class) unless old
-      raise Error::UnmatchedBlock.new(old.left_node, right_node_class) unless old.left_node.class == right_node_class
+      raise Error::UnmatchedBlock.new(old.left_node, right_node_class) unless old.left_node.end_tag_class?(right_node_class)
       @current_block = old.block
     end
 
@@ -910,9 +944,12 @@ module AozoraParser
     def on_annotation_with_no_target (tok)
       @ignore_linebreak = true
       case tok.whole
-      when /\Aここから(?:引用文、?)?(#{Pattern::NUMS}+)字下げ?(?:、折り返して.*)?\Z/
-        # FIXME 折り返し未対応
-        enter_block(Tree::Top, [], Regexp.last_match[1])
+      when /\Aここから(?:引用文、?)?(#{Pattern::NUMS}+)字下げ?(?:、?折り返して、?(#{Pattern::NUMS}+)字下げ?)?\Z/
+        if Regexp.last_match[2]
+          enter_block(Tree::TopWithTurn, [], Regexp.last_match[1], Regexp.last_match[2])
+        else
+          enter_block(Tree::Top, [], Regexp.last_match[1])
+        end
       when /\A(?:ここで字下げ|引用文)(?:終わ?り|、.+終わ?り)\Z/
         exit_block(Tree::Top)
       when /\A(?:ここ(?:から|より))(?:地付き|、?地(?:から|より))(?:(#{Pattern::NUMS}+)字(?:空き|上げ|アキ))?\Z/
