@@ -804,14 +804,12 @@ EOT
         ]
       )
     assert_equal except, ts
-  end # }}}
 
-  def test_top__old_style # {{{
     ts = Parser.parse <<EOT
 Hello
-［＃ここから改行天付き］
-一、ねこのかわいさで世界を征服し、地球が猫だらけになる
-一、地球が爆発する
+［＃ここから改行２字下げ、折り返して８字下げ］
+ねこ
+なめ
 ［＃ここで字下げ終わり］
 World
 EOT
@@ -821,14 +819,15 @@ EOT
         [
           Tree::Text.new('Hello'),
           Tree::LineBreak.new,
-          Tree::Top.new(
+          Tree::TopWithTurn.new(
             [
-              Tree::Text.new('一、ねこのかわいさで世界を征服し、地球が猫だらけになる'),
+              Tree::Text.new('ねこ'),
               Tree::LineBreak.new,
-              Tree::Text.new('一、地球が爆発する'),
+              Tree::Text.new('なめ'),
               Tree::LineBreak.new
             ],
-            nil
+            2,
+            8
           ),
           Tree::Text.new('World'),
           Tree::LineBreak.new
