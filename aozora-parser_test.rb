@@ -1138,7 +1138,7 @@ EOT
         ]
       )
     assert_equal except, ts
-  end
+  end # }}}
 
   def test_rice_mark # {{{
     # XXX Å¶ÇÕì¡Ç…âΩÇ‡Ç»ÇØÇÍÇŒÅAÇªÇÃÇ‹Ç‹èoóÕÇ∑ÇÈ
