@@ -171,6 +171,33 @@ EOT
     assert_equal          Token::Image.new('img/00.jpg'),   ts[4]
     assert_equal          'third line',                     ts[5].text
   end # }}}
+
+  def test_ignore_bottom_info
+    ts = Parser.parse <<-EOT
+ほんぶん1
+ほんぶん2
+ほんぶん3
+底本：「現代日本思想大系　14　芸術の思想」筑摩書房
+　　　1964（昭和39）年8月15日発行
+入力：土屋隆
+校正：染川隆俊
+2008年1月25日作成
+青空文庫作成ファイル：
+このファイルは、インターネットの図書館、青空文庫（http://www.aozora.gr.jp/）で作られました。入力、校正、制作にあたったのは、ボランティアの皆さんです。
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('ほんぶん1'),
+          Tree::LineBreak.new,
+          Tree::Text.new('ほんぶん2'),
+          Tree::LineBreak.new,
+          Tree::Text.new('ほんぶん3'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end
 end # }}}
 
 # Parser

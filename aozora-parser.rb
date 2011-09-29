@@ -657,6 +657,8 @@ module AozoraParser
 
         lb = line.chomp!
 
+        break if Pattern::AozoraInformation === line
+
         if Pattern::NoteLine === prev_line and /テキスト中に現れる記号について/ === line
           in_notes = true
           @tokens.pop(2)
@@ -738,6 +740,7 @@ module AozoraParser
     NUMS = /[０-９0-9]/
     NoteLine = /\A-{20,}\Z/
     ImageTagLine = /\A\s*<img\s+src=(".+?"|'.+?'|.+\s)\s*\/?>\s*\Z/
+    AozoraInformation = /\A底本：.+\Z/
   end # }}}
 
   class Parser # {{{
