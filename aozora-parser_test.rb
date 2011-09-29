@@ -1343,6 +1343,15 @@ Hello
 EOT
     end
 
+    # XXX オプションでエラーを無視できる
+    opt = ParserOption.new(:check_last_block_end => false)
+    ts = Parser.parse(<<EOT, opt)
+Hello
+［＃ここから３字下げ］
+ねこ
+なめ
+EOT
+
     assert_raises(Error::NoBlockEnd) do
       ts = Parser.parse <<EOT
 Hello
@@ -1459,6 +1468,22 @@ EOT
 さしすせそ
 EOT
     assert_equal Tree::Image.new('img/00.jpg'),   ts[2]
+  end # }}}
+end # }}}
+
+class TestParserOption < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_init__with_block__no_method # {{{
+    assert_raises(NameError) do
+      ParserOption.new(:hoge => true)
+    end
+  end # }}}
+
+  def test_init__with_block # {{{
+    opt = ParserOption.new(:check_last_block_end => true)
+
+    assert_equal true, opt.check_last_block_end
   end # }}}
 end # }}}
 

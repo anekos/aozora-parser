@@ -743,23 +743,44 @@ module AozoraParser
     AozoraInformation = /\AíÍñ{ÅF.+\Z/
   end # }}}
 
+  class ParserOption # {{{
+    PROPERTY_NAMES = [:check_last_block_end]
+    attr_reader *PROPERTY_NAMES
+
+    def initialize (opts = nil)
+      @check_last_block_end = true
+
+      set(opts) if opts
+    end
+
+    def set (opts)
+      opts.each do
+        |k, v|
+        raise NameError, k.to_s unless PROPERTY_NAMES.include?(k)
+        instance_variable_set("@#{k}", v)
+      end
+    end
+  end # }}}
+
   class Parser # {{{
     Stack = Struct.new(:block, :left_node)
 
-    def self.parse (source)
-      parser = self.new
+    def self.parse (source, *args)
+      parser = self.new(*args)
       parser.parse(source)
       parser.tree
     end
 
-    def self.parse_file (source_filepath, encoding = 'Shift_JIS')
-      source = File.open(source_filepath, "r:#{encoding}") {|file| file.read }
-      self.parse(source)
+    def self.parse_file (source_filepath, encoding = 'Shift_JIS', *args)
+      parser = self.new(*args)
+      parser.parse_file(source_filepath, encoding)
+      parser.tree
     end
 
     attr_reader :tree
 
-    def initialize
+    def initialize (option = ParserOption.new)
+      @option = option
       reset
     end
 
@@ -772,6 +793,11 @@ module AozoraParser
       @on_one_line_annotation = false
       @tokens = nil
       @tokens_pos = -1
+    end
+
+    def parse_file (source_filepath, encoding = 'Shift_JIS')
+      source = File.open(source_filepath, "r:#{encoding}") {|file| file.read }
+      self.parse(source)
     end
 
     def parse (source)
@@ -910,6 +936,7 @@ module AozoraParser
     end
 
     def on_end
+      return unless @option.check_last_block_end
       raise Error::NoBlockEnd.new(@current_block) unless @block_stack.empty?
     end
 
