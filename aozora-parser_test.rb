@@ -1501,6 +1501,58 @@ EOT
 EOT
     assert_equal Tree::Image.new('img/00.jpg'),   ts[2]
   end # }}}
+
+  def test_horizontal_center # {{{
+    ts = Parser.parse <<-EOT
+［＃ページの左右中央］
+ねこねこぼーい
+［＃改ページ］
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::HorizontalCenter.new(
+            [
+                Tree::Text.new('ねこねこぼーい'),
+                Tree::LineBreak.new
+            ]
+          ),
+          Tree::PageBreak.new
+        ]
+      );
+
+    assert_equal except, ts
+  end # }}}
+
+  def test_top_with_horizontal_center # {{{
+    # XXX 利便性のために、左右中央の中に字下げを入れる
+
+    ts = Parser.parse <<-EOT
+［＃ここから３字下げ、左右中央］
+ねこねこぼーい
+［＃ここで字下げ終わり］
+［＃改ページ］
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::HorizontalCenter.new(
+            [
+              Tree::Top.new(
+                [
+                  Tree::Text.new('ねこねこぼーい'),
+                  Tree::LineBreak.new
+                ],
+                3
+              )
+            ]
+          ),
+          Tree::PageBreak.new
+        ]
+      );
+
+    assert_equal except, ts
+  end # }}}
 end # }}}
 
 class TestParserOption < MiniTest::Unit::TestCase # {{{

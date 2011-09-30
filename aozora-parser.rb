@@ -544,6 +544,7 @@ module AozoraParser
     class Dots < Annotation; end
     class Line < Annotation; end
     class Yoko < Annotation; end
+    class HorizontalCenter < Annotation; end
     class Top < Leveled; end
     class Bottom < Leveled; end
 
@@ -744,7 +745,12 @@ module AozoraParser
   end # }}}
 
   class ParserOption # {{{
-    PROPERTY_NAMES = [:check_last_block_end]
+    PROPERTY_NAMES = [
+      # テキストの最後で、ブロックが閉じられているか確認
+      :check_last_block_end,
+      # 左右中央の次の改ページを確認
+      :check_page_break_for_horizontal_center
+    ]
     attr_reader *PROPERTY_NAMES
 
     # XXX デフォルトでは、ある程度の不正な記述は見逃す方向
@@ -763,15 +769,17 @@ module AozoraParser
 
     def set_easy
       @check_last_block_end = false
+      @check_page_break_for_horizontal_center = false
     end
 
     def set_strict
       @check_last_block_end = true
+      @check_page_break_for_horizontal_center = true
     end
   end # }}}
 
   class Parser # {{{
-    Stack = Struct.new(:block, :left_node)
+    Stack = Struct.new(:block, :left_node, :exit_from, :count)
 
     def self.parse (source, *args)
       parser = self.new(*args)
@@ -936,10 +944,30 @@ module AozoraParser
       @current_block = block
     end
 
+    def enter_multi_block (exit_from, *lefts)
+      lefts.each_with_index do
+        |it, i|
+        left_node, *args = it
+        enter_block(left_node, *args)
+        if i == lefts.size - 1
+          @block_stack.last.exit_from = exit_from
+          @block_stack.last.count = lefts.size
+        end
+      end
+    end
+
     def exit_block (right_node_class)
       old = @block_stack.pop
+
       raise Error::NoBlockStart.new(right_node_class) unless old
-      raise Error::UnmatchedBlock.new(old.left_node, right_node_class) unless old.left_node.end_tag_class?(right_node_class)
+
+      if old.exit_from
+        raise Error::UnmatchedBlock.new(old.left_node, right_node_class) unless old.exit_from == right_node_class
+      else
+        raise Error::UnmatchedBlock.new(old.left_node, right_node_class) unless old.left_node.end_tag_class?(right_node_class)
+      end
+
+      ((old.count || 1) - 1).times.each { old = @block_stack.pop }
       @current_block = old.block
     end
 
@@ -987,6 +1015,14 @@ module AozoraParser
     def on_annotation_with_no_target (tok)
       @ignore_linebreak = true
       case tok.whole
+      when /\Aページの左右中央\Z/
+        enter_block(Tree::HorizontalCenter)
+      when /\Aここから(#{Pattern::NUMS}+)字下げ、左右中央\Z/
+        enter_multi_block(
+          Tree::Top,
+          [Tree::HorizontalCenter],
+          [Tree::Top, [], Regexp.last_match[1]]
+        )
       when /\Aここから(?:引用文、?)?(#{Pattern::NUMS}+)字下げ?\Z/,
            /\Aここから(?:改行)?(?:天付き|(#{Pattern::NUMS}+)字下げ?)、?折り返して、?(#{Pattern::NUMS}+)字下げ?\Z/
         if Regexp.last_match[2]
@@ -1001,6 +1037,7 @@ module AozoraParser
       when /\Aここで、?(?:地付き|、?地上げ|字上げ)終わ?り\Z/
         exit_block(Tree::Bottom)
       when /\A改(?:ページ|頁)\Z/
+        exit_block(Tree::HorizontalCenter) if @current_block.class == Tree::HorizontalCenter
         put(Tree::PageBreak)
       when /\A改丁\/Z/
         put(Tree::SheetBreak)
