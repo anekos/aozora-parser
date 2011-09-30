@@ -34,6 +34,19 @@ module AozoraParser
       end
     end # }}}
 
+    class SplitBlockByForwardRef < Format # {{{
+      attr_reader :block_node, :text
+
+      def initialize (block_node, text)
+        @block_node = block_node
+        @text = text
+      end
+
+      def to_s
+        "Cannot split block element by forward ref: #{block_node} / #{text.inspect}"
+      end
+    end # }}}
+
     class UnmatchedBlock < Format # {{{
       attr_reader :left_node, :right_node
 
@@ -246,6 +259,12 @@ module AozoraParser
   end # }}}
 
   module Tree # {{{
+    module DontSplit # {{{
+      def split_by_text (t)
+        raise Error::SplitBlockByForwardRef.new(self, t)
+      end
+    end # }}}
+
     class Node # {{{
       PROPERTY_NAMES = [:token]
 
@@ -506,6 +525,8 @@ module AozoraParser
     class SheetBreak < Break; end
 
     class Ruby < Block # {{{
+      include DontSplit
+
       attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:ruby])
 
       def initialize (items = [], ruby = nil)
@@ -544,7 +565,7 @@ module AozoraParser
     class Dots < Annotation; end
     class Line < Annotation; end
     class Yoko < Annotation; end
-    class HorizontalCenter < Annotation; end
+    class HorizontalCenter < Annotation; include DontSplit; end
     class Top < Leveled; end
     class Bottom < Leveled; end
 

@@ -410,6 +410,12 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
                                                   l
     assert_equal Tree::Text.new('三四五'),        c
     assert_equal Tree::Text.new('六七八九'),      r
+
+    # ルビ(ブロック)を分割することはできない
+    ruby = Tree::Ruby.new([Tree::Text.new('foobarbaz')], 'メタ構文変数')
+    assert_raises(Error::SplitBlockByForwardRef) do
+      ruby.split_by_text('bar')
+    end
   end # }}}
 
   def test_split_by_text__simple # {{{
