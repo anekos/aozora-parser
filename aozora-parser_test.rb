@@ -1333,8 +1333,17 @@ EOT
   end # }}}
 
   def test_no_block_end # {{{
+    # XXX デフォルトでは、エラーチェックしない
+    ts = Parser.parse(<<EOT)
+Hello
+［＃ここから３字下げ］
+ねこ
+なめ
+EOT
+
     assert_raises(Error::NoBlockEnd) do
-      ts = Parser.parse <<EOT
+      opt = ParserOption.new(:check_last_block_end => true)
+      ts = Parser.parse(<<EOT, opt)
 Hello
 ［＃ここから３字下げ］
 ねこ
@@ -1342,17 +1351,10 @@ Hello
 EOT
     end
 
-    # XXX オプションでエラーを無視できる
-    opt = ParserOption.new(:check_last_block_end => false)
-    ts = Parser.parse(<<EOT, opt)
-Hello
-［＃ここから３字下げ］
-ねこ
-なめ
-EOT
-
+    # 最後のブロックは閉じているのが、違う種類のブロックが続いているのでエラー
     assert_raises(Error::NoBlockEnd) do
-      ts = Parser.parse <<EOT
+      opt = ParserOption.new(:check_last_block_end => true)
+      ts = Parser.parse(<<EOT, opt)
 Hello
 ［＃ここから３字下げ］
 ねこ
@@ -1361,6 +1363,37 @@ Hello
 ［＃ここで地付き終わり］
 EOT
     end
+
+    # 同じ種類のブロックで連続しているのでエラーにならない
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから３字下げ］
+ねこ
+なめ
+［＃ここから５字下げ］
+りんちょ
+［＃ここで字下げ終わり］
+EOT
+  except =
+    Tree::Document.new(
+      [
+        Tree::Text.new('Hello'), Tree::LineBreak.new,
+        Tree::Top.new(
+          [
+            Tree::Text.new('ねこ'), Tree::LineBreak.new,
+            Tree::Text.new('なめ'), Tree::LineBreak.new,
+          ],
+          3
+        ),
+        Tree::Top.new(
+          [
+            Tree::Text.new('りんちょ'), Tree::LineBreak.new,
+          ],
+          5
+        ),
+      ]
+    )
+  assert_equal except, ts
 
     begin
       ts = Parser.parse <<EOT

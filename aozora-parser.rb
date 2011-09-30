@@ -747,9 +747,9 @@ module AozoraParser
     PROPERTY_NAMES = [:check_last_block_end]
     attr_reader *PROPERTY_NAMES
 
+    # XXX デフォルトでは、ある程度の不正な記述は見逃す方向
     def initialize (opts = nil)
-      @check_last_block_end = true
-
+      set_easy
       set(opts) if opts
     end
 
@@ -759,6 +759,14 @@ module AozoraParser
         raise NameError, k.to_s unless PROPERTY_NAMES.include?(k)
         instance_variable_set("@#{k}", v)
       end
+    end
+
+    def set_easy
+      @check_last_block_end = false
+    end
+
+    def set_strict
+      @check_last_block_end = true
     end
   end # }}}
 
