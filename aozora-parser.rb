@@ -594,8 +594,20 @@ module AozoraParser
     class Line < Annotation; end
     class Yoko < Annotation; end
     class HorizontalCenter < Annotation; include DontSplit; end
-    class Top < Leveled; end
     class Bottom < Leveled; end
+
+    class Top < Leveled
+      attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:fill])
+
+      def initialize (items, level = nil, fill = nil)
+        super(items, level)
+        @fill = String === fill ?  Util.text_to_number(fill) : fill
+      end
+
+      def == (rhs)
+        super(rhs) and @fill == rhs.fill
+      end
+    end
 
     class Heading < Annotation # {{{
       attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:level])
@@ -615,8 +627,8 @@ module AozoraParser
     class TopWithTurn < Top # {{{
       attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:turned_level])
 
-      def initialize (items, level, turned_level)
-        super(items, level)
+      def initialize (items, level, turned_level, fill = nil)
+        super(items, level, fill)
         @turned_level = String === turned_level ?  Util.text_to_number(turned_level) : turned_level
       end
 
@@ -1069,19 +1081,21 @@ module AozoraParser
       case tok.whole
       when /\Aページの左右中央\Z/
         enter_block(Tree::HorizontalCenter)
-      when /\Aここから(#{Pattern::NUMS}+)字下げ、左右中央\Z/
+      when /\Aここから(#{Pattern::NUMS}+)字下げ、(?:、?(#{Pattern::NUMS}+)字詰め、)?(?:ページの)?左右中央に?\Z/
         enter_multi_block(
           Tree::Top,
           [Tree::HorizontalCenter],
-          [Tree::Top, [], Regexp.last_match[1]]
+          [Tree::Top, [], Regexp.last_match[1], Regexp.last_match[2]]
         )
-      when /\Aここから(?:引用文、?)?(#{Pattern::NUMS}+)字下げ?\Z/,
-           /\Aここから(?:改行)?(?:天付き|(#{Pattern::NUMS}+)字下げ?)、?折り返して、?(#{Pattern::NUMS}+)字下げ?\Z/
-        if Regexp.last_match[2]
-          enter_block(Tree::TopWithTurn, [], Regexp.last_match[1], Regexp.last_match[2])
-        else
-          enter_block(Tree::Top, [], Regexp.last_match[1])
-        end
+      when /\Aここから(?:引用文、?)?(#{Pattern::NUMS}+)字下げ?(?:、?(#{Pattern::NUMS}+)字詰め)?\Z/
+        enter_block(Tree::Top, [], Regexp.last_match[1], Regexp.last_match[2])
+      when /\A
+              ここから(?:改行)?(?:天付き|(#{Pattern::NUMS}+)字下げ?)、?
+             折り返して、?
+             (#{Pattern::NUMS}+)字下げ?
+             (?:、?(#{Pattern::NUMS}+)字詰め)?
+           \Z/x
+        enter_block(Tree::TopWithTurn, [], Regexp.last_match[1], Regexp.last_match[2], Regexp.last_match[3])
       when /\A(?:ここで字下げ|引用文)(?:終わ?り|、.+終わ?り)\Z/
         exit_block(Tree::Top)
       when /\A(?:ここ(?:から|より))(?:地付き|、?地(?:から|より))(?:(#{Pattern::NUMS}+)字(?:空き|上げ|アキ))?\Z/

@@ -216,10 +216,12 @@ class TestTreeNode < MiniTest::Unit::TestCase # {{{
     assert_block { Tree::Bold.new([Tree::Text.new('a')]) == Tree::Bold.new([Tree::Text.new('a')]) }
     assert_block { Tree::Bottom.new([Tree::Text.new('a')]) == Tree::Bottom.new([Tree::Text.new('a')]) }
     assert_block { Tree::Top.new([Tree::Text.new('a')]) == Tree::Top.new([Tree::Text.new('a')]) }
+    assert_block { Tree::Top.new([Tree::Text.new('a')], 10) == Tree::Top.new([Tree::Text.new('a')], 10) }
 
     assert_block { not Tree::Bold.new([Tree::Text.new('a')]) == Tree::Bold.new([Tree::Text.new('A')]) }
     assert_block { not Tree::Bottom.new([Tree::Text.new('a')]) == Tree::Bottom.new([Tree::Text.new('A')]) }
     assert_block { not Tree::Top.new([Tree::Text.new('a')]) == Tree::Top.new([Tree::Text.new('A')]) }
+    assert_block { not Tree::Top.new([Tree::Text.new('a')], 3) == Tree::Top.new([Tree::Text.new('A')], 2) }
   end # }}}
 
   def test_initialize_copy # {{{
@@ -1277,6 +1279,96 @@ EOT
               Tree::LineBreak.new
             ],
             3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # ブロックでの字下げ - 不正？ {{{
+  def test_layout2_jsiage_multi__invalid
+    # ref: 嘘の効用 / 末弘厳太郎 / 45642_txt_28273/usono_koyo.txt
+
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから８字下げ、３０字詰め］
+あいうえおかきくけこあいうえおかきくけこあいうえおかきくけこあいうえおかきくけこあいうえおかきくけこ
+［＃ここで字下げ終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('あいうえおかきくけこあいうえおかきくけこあいうえおかきくけこあいうえおかきくけこあいうえおかきくけこ'),
+              Tree::LineBreak.new,
+            ],
+            8,
+            30
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 折り返し付き
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから６字下げ、折り返して７字下げ、２１字詰め］
+あいうえおかきくけこあいうえおかきくけこ
+［＃ここで字下げ終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::TopWithTurn.new(
+            [
+              Tree::Text.new('あいうえおかきくけこあいうえおかきくけこ'),
+              Tree::LineBreak.new,
+            ],
+            6,
+            7,
+            21
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 折り返し付き
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから５字下げ、２９字詰め、ページの左右中央に］
+あいうえおかきくけこあいうえおかきくけこ
+［＃ここで字下げ終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::HorizontalCenter.new(
+            [
+              Tree::Top.new(
+                [
+                  Tree::Text.new('あいうえおかきくけこあいうえおかきくけこ'),
+                  Tree::LineBreak.new,
+                ],
+                5,
+                29
+              ),
+            ]
           ),
           Tree::Text.new('World'),
           Tree::LineBreak.new
