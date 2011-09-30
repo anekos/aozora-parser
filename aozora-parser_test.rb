@@ -59,30 +59,6 @@ class TestLexer < MiniTest::Unit::TestCase # {{{
     assert_equal       'ねこはかわいい',  ts[0].text
   end # }}}
 
-  def test_ruby # {{{
-    ts = Lexer.lex("猫《ねこ》")
-
-    assert_equal 2, ts.size
-    assert_instance_of Token::Kanji,              ts[0]
-    assert_equal       '猫',                      ts[0].text
-    assert_instance_of Token::Ruby,               ts[1]
-    assert_equal       'ねこ',                    ts[1].ruby
-  end # }}}
-
-  def test_ruby__with_bar # {{{
-    ts = Lexer.lex("わたしはあのかわいい｜猫《ねこ》をなめることしかできないのであった")
-
-    assert_equal 5, ts.size
-    assert_instance_of Token::Hiragana,           ts[0] # わたしはあのかわいい
-    assert_equal       'わたしはあのかわいい',    ts[0].text
-    assert_instance_of Token::RubyBar,            ts[1] # ｜
-    assert_instance_of Token::Kanji,              ts[2] # 猫
-    assert_equal       '猫',                      ts[2].text
-    assert_instance_of Token::Ruby,               ts[3] # 《ねこ》
-    assert_equal       'ねこ',                    ts[3].ruby
-    assert_instance_of Token::Hiragana,           ts[4] # をなめることしかできないのであった
-  end # }}}
-
   def test_char_type # {{{
     ts = Lexer.lex("私はネコを舐める")
 
@@ -680,465 +656,6 @@ EOT
     assert_equal except, ts
   end # }}}
 
-  def test_bold_near # {{{
-    ts = Parser.parse("今日のところはねこ［＃「ねこ」は太字］をなめたい")
-
-    assert_equal 3, ts.size
-    assert_instance_of Tree::Text,              ts[0]
-    assert_instance_of Tree::Bold,              ts[1]
-    assert_instance_of Tree::Text,              ts[2]
-    assert_equal       'をなめたい',            ts[2].text
-
-    bold = ts[1]
-    assert_equal 1, bold.size
-    assert_instance_of Tree::Text,  bold[0]
-    assert_equal       'ねこ',      bold.text
-    assert_equal       'ねこ',      bold[0].text
-  end # }}}
-
-  def test_dots_multi_line # {{{
-    ts = Parser.parse("おはよう！\nなぜかねこを［＃「ねこ」に傍点］なめたいね")
-
-    assert_equal 5, ts.size
-    assert_equal Tree::Text.new('おはよう！'),              ts[0]
-    assert_equal Tree::LineBreak.new,                       ts[1]
-    assert_equal Tree::Text.new('なぜか'),                  ts[2]
-    assert_equal Tree::Dots.new([Tree::Text.new('ねこ')]),  ts[3]
-    assert_equal Tree::Text.new('をなめたいね'),            ts[4]
-
-    dots = ts[3]
-    assert_equal 1, dots.size
-    assert_instance_of Tree::Text,  dots[0]
-    assert_equal       'ねこ',      dots.text
-    assert_equal       'ねこ',      dots[0].text
-  end # }}}
-
-  def test_dots_near # {{{
-    ts = Parser.parse("今日のところはねこ［＃「ねこ」に傍点］をなめたい")
-
-    assert_equal 3, ts.size
-    assert_instance_of Tree::Text,              ts[0]
-    assert_instance_of Tree::Dots,              ts[1]
-    assert_instance_of Tree::Text,              ts[2]
-    assert_equal       'をなめたい',            ts[2].text
-
-    dots = ts[1]
-    assert_equal 1, dots.size
-    assert_instance_of Tree::Text,  dots[0]
-    assert_equal       'ねこ',      dots.text
-    assert_equal       'ねこ',      dots[0].text
-  end # }}}
-
-  def test_heading # {{{
-    ts = Parser.parse("meow\n宇宙猫［＃「宇宙猫」は中見出し］\nmeow")
-
-    assert_equal 5, ts.size
-    assert_equal Tree::Text.new('meow'),                                ts[0]
-    assert_equal Tree::LineBreak.new,                                   ts[1]
-    assert_equal Tree::Heading.new([Tree::Text.new('宇宙猫')], '中'),   ts[2]
-    assert_equal Tree::LineBreak.new,                                   ts[3]
-    assert_equal Tree::Text.new('meow'),                                ts[4]
-  end # }}}
-
-  def test_top # {{{
-    # XXX 改行をいれる位置にちゅうい
-    # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
-
-    ts = Parser.parse <<EOT
-Hello
-［＃ここから３字下げ］
-ねこ
-なめ
-［＃ここで字下げ終わり］
-World
-EOT
-
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::Top.new(
-            [
-              Tree::Text.new('ねこ'),
-              Tree::LineBreak.new,
-              Tree::Text.new('なめ'),
-              Tree::LineBreak.new
-            ],
-            3
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-  end # }}}
-
-  def test_top_with_turn # {{{
-    ts = Parser.parse <<EOT
-Hello
-［＃ここから１字下げ、折り返して３字下げ］
-ねこ
-なめ
-［＃ここで字下げ終わり］
-World
-EOT
-
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::TopWithTurn.new(
-            [
-              Tree::Text.new('ねこ'),
-              Tree::LineBreak.new,
-              Tree::Text.new('なめ'),
-              Tree::LineBreak.new
-            ],
-            1,
-            3
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-    ts = Parser.parse <<EOT
-Hello
-［＃ここから改行２字下げ、折り返して８字下げ］
-ねこ
-なめ
-［＃ここで字下げ終わり］
-World
-EOT
-
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::TopWithTurn.new(
-            [
-              Tree::Text.new('ねこ'),
-              Tree::LineBreak.new,
-              Tree::Text.new('なめ'),
-              Tree::LineBreak.new
-            ],
-            2,
-            8
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-    ts = Parser.parse <<EOT
-Hello
-［＃ここから改行天付き、折り返して２字下げ］
-一、ねこのかわいさで世界を征服し、地球が猫だらけになる
-一、地球が爆発する
-［＃ここで字下げ終わり］
-World
-EOT
-
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::TopWithTurn.new(
-            [
-              Tree::Text.new('一、ねこのかわいさで世界を征服し、地球が猫だらけになる'),
-              Tree::LineBreak.new,
-              Tree::Text.new('一、地球が爆発する'),
-              Tree::LineBreak.new
-            ],
-            nil,
-            2
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-  end # }}}
-
-  def test_top_oneline # {{{
-    # XXX 字下げの改行をいれる位置は Top の中？外？
-    # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
-
-    ts = Parser.parse <<EOT
-Hello
-［＃３字下げ］ここだけさ
-World
-EOT
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::Top.new(
-            [
-              Tree::Text.new('ここだけさ'),
-              Tree::LineBreak.new,
-            ],
-            3
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-    # 旧スタイル
-    ts = Parser.parse <<EOT
-Hello
-［＃天から３字下げ］ここだけさ
-World
-EOT
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::Top.new(
-            [
-              Tree::Text.new('ここだけさ'),
-              Tree::LineBreak.new,
-            ],
-            3
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-    # 文書のはじめ
-    ts = Parser.parse <<EOT
-［＃３字下げ］ここだけさ
-World
-EOT
-    except =
-      Tree::Document.new(
-        [
-          Tree::Top.new(
-            [
-              Tree::Text.new('ここだけさ'),
-              Tree::LineBreak.new,
-            ],
-            3
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-    # 改ページの後
-    ts = Parser.parse <<EOT
-［＃改頁］
-［＃３字下げ］ここだけさ
-World
-EOT
-    except =
-      Tree::Document.new(
-        [
-          Tree::PageBreak.new,
-          Tree::Top.new(
-            [
-              Tree::Text.new('ここだけさ'),
-              Tree::LineBreak.new,
-            ],
-            3
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-  end # }}}
-
-  def test_top_oneline_invalid # {{{
-    # 字下げの場合、タグの前には文字はこないはず
-
-    assert_raises(Error::UnexpectedWord) do
-      ts = Parser.parse <<EOT
-Hello
-じゃま［＃３字下げ］ここだけさ
-World
-EOT
-    end
-  end # }}}
-
-  def test_bottom # {{{
-    ts = Parser.parse <<EOT
-Hello
-［＃ここから地付き］
-ねこ
-なめ
-［＃ここで地付き終わり］
-World
-EOT
-
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::Bottom.new(
-            [
-              Tree::Text.new('ねこ'),
-              Tree::LineBreak.new,
-              Tree::Text.new('なめ'),
-              Tree::LineBreak.new
-            ],
-            nil
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-  end # }}}
-
-  def test_bottom_oneline # {{{
-    ts = Parser.parse <<EOT
-Hello
-［＃地から１2字上げ］ここだけさ
-World
-EOT
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::Bottom.new(
-            [
-              Tree::Text.new('ここだけさ'),
-              Tree::LineBreak.new,
-            ],
-            12
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-    # 字下げと違い、前に文字があってもいいんだよ
-    ts = Parser.parse <<EOT
-ひゃっほう！［＃地から３字上げ］ここだけさ
-World
-EOT
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('ひゃっほう！'),
-          Tree::Bottom.new(
-            [
-              Tree::Text.new('ここだけさ'),
-              Tree::LineBreak.new,
-            ],
-            3
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-    # 改ページの後
-    ts = Parser.parse <<EOT
-［＃改頁］
-［＃地付き］ここだけさ
-World
-EOT
-    except =
-      Tree::Document.new(
-        [
-          Tree::PageBreak.new,
-          Tree::Bottom.new(
-            [
-              Tree::Text.new('ここだけさ'),
-              Tree::LineBreak.new,
-            ],
-            nil
-          ),
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-
-  end # }}}
-
-  def test_ruby # {{{
-    ts = Parser.parse <<EOT
-Hello
-吾輩は猫《ねこ》であるぜよ。
-World
-EOT
-
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::Text.new('吾輩は'),
-          Tree::Ruby.new([Tree::Text.new('猫')], 'ねこ'),
-          Tree::Text.new('であるぜよ。'),
-          Tree::LineBreak.new,
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-  end # }}}
-
-  def test_ruby_with_bar # {{{
-    ts = Parser.parse <<EOT
-Hello
-吾輩は｜超かわいい生命体《ねこ》であるぜよ。
-World
-EOT
-
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('Hello'),
-          Tree::LineBreak.new,
-          Tree::Text.new('吾輩は'),
-          Tree::Ruby.new([Tree::Text.new('超かわいい生命体')], 'ねこ'),
-          Tree::Text.new('であるぜよ。'),
-          Tree::LineBreak.new,
-          Tree::Text.new('World'),
-          Tree::LineBreak.new
-        ]
-      )
-    assert_equal except, ts
-  end # }}}
-
-  def test_ruby__with_annotation # {{{
-    ts = Parser.parse('碍子を※［＃「てへん＋丑」、第4水準2-12-93］《ね》じこんだり')
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('碍子を'),
-          Tree::Ruby.new(
-            [Tree::JIS.new([Tree::Text.new('※')], 'てへん＋丑」、第4水準2-12-93')],
-            'ね'
-          ),
-          Tree::Text.new('じこんだり')
-        ]
-      )
-    assert_equal except, ts
-  end # }}}
-
   def test_rice_mark # {{{
     # XXX ※は特に何もなければ、そのまま出力する
 
@@ -1437,33 +954,6 @@ EOT
     assert_equal except, ts
   end # }}}
 
-  def test_gaiji_jis # {{{
-    ts = Parser.parse('叢という叢を掻き※［＃「廴＋囘」、第4水準2-12-11］したり')
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('叢という叢を掻き'),
-          Tree::JIS.new([Tree::Text.new('※')], '「廴＋囘」、第4水準2-12-11'),
-          Tree::Text.new('したり')
-        ]
-      )
-    assert_equal except, ts
-  end # }}}
-
-  def test_gaiji_unicode # {{{
-    ts = Parser.parse('木綿の上着と｜※［＃「ころもへん＋庫」、unicode8932］子《クーシ》をはいた女')
-    except =
-      Tree::Document.new(
-        [
-          Tree::Text.new('木綿の上着と'),
-          Tree::Unicode.new([Tree::Text.new('※')], '「ころもへん＋庫」、unicode8932'),
-          Tree::Ruby.new([Tree::Text.new('子')], 'クーシ'),
-          Tree::Text.new('をはいた女')
-        ]
-      )
-    assert_equal except, ts
-  end # }}}
-
   def test_line_number # {{{
     # TODO 正確でない場合がありそう
 
@@ -1492,17 +982,477 @@ EOT
     assert_instance_of  Tree::Dots,   ts[0]
     assert_equal        1,            ts[0].token.line
   end # }}}
+end # }}}
 
-  def test_image_tag # {{{
-    ts = Parser.parse <<-EOT
-あいうえお
-<img src="img/00.jpg">
-さしすせそ
-EOT
-    assert_equal Tree::Image.new('img/00.jpg'),   ts[2]
+class TestParserOption < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  def test_init__with_block__no_method # {{{
+    assert_raises(NameError) do
+      ParserOption.new(:hoge => true)
+    end
   end # }}}
 
-  def test_horizontal_center # {{{
+  def test_init__with_block # {{{
+    opt = ParserOption.new(:check_last_block_end => true)
+
+    assert_equal true, opt.check_last_block_end
+  end # }}}
+end # }}}
+
+# 青空文庫注記仕様
+
+class TestAozoraSpec < MiniTest::Unit::TestCase # {{{
+  include AozoraParser
+
+  # ページや段をあらためる処理 {{{
+  # http://kumihan.aozora.gr.jp/layout1.html
+
+  # 改丁 {{{
+  def test_layout1_kaicho
+    ts = Parser.parse(<<EOT)
+［＃改丁］
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::SheetBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # 改ページ {{{
+  def test_layout1_kaipage
+    ts = Parser.parse(<<EOT)
+［＃改ページ］
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::PageBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # 改段 {{{
+  def test_layout1_kaidan
+    return # FIXME
+    ts = Parser.parse(<<EOT)
+［＃改段］
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::PageBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # }}}
+
+  # 字下げ {{{
+  # http://kumihan.aozora.gr.jp/layout2.html
+
+  # １行だけの字下げ {{{
+  def test_layout2_jsiage1
+    # XXX 字下げの改行をいれる位置は Top の中？外？
+    # See: http://kumihan.aozora.gr.jp/layout2.html#jisage
+
+    ts = Parser.parse <<EOT
+Hello
+［＃３字下げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 文書のはじめ
+    ts = Parser.parse <<EOT
+［＃３字下げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Top.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 改ページの後
+    ts = Parser.parse <<EOT
+［＃改頁］
+［＃３字下げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::PageBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 字下げの場合、タグの前には文字はこないはず
+    assert_raises(Error::UnexpectedWord) do
+      ts = Parser.parse <<EOT
+Hello
+じゃま［＃３字下げ］ここだけさ
+World
+EOT
+    end
+  end # }}}
+
+  # １行だけの字下げ - 旧 {{{
+  def test_layout2_jsiage1__old
+    ts = Parser.parse <<EOT
+Hello
+［＃天から３字下げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # ブロックでの字下げ {{{
+  def test_layout2_jsiage_multi
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから３字下げ］
+ねこ
+なめ
+［＃ここで字下げ終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('ねこ'),
+              Tree::LineBreak.new,
+              Tree::Text.new('なめ'),
+              Tree::LineBreak.new
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # 凹凸の複雑な字下げ {{{
+  def test_layout2_jsiage_cocomplex
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから１字下げ、折り返して３字下げ］
+ねこ
+なめ
+［＃ここで字下げ終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::TopWithTurn.new(
+            [
+              Tree::Text.new('ねこ'),
+              Tree::LineBreak.new,
+              Tree::Text.new('なめ'),
+              Tree::LineBreak.new
+            ],
+            1,
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから改行天付き、折り返して２字下げ］
+一、ねこのかわいさで世界を征服し、地球が猫だらけになる
+一、地球が爆発する
+［＃ここで字下げ終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::TopWithTurn.new(
+            [
+              Tree::Text.new('一、ねこのかわいさで世界を征服し、地球が猫だらけになる'),
+              Tree::LineBreak.new,
+              Tree::Text.new('一、地球が爆発する'),
+              Tree::LineBreak.new
+            ],
+            nil,
+            2
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # 凹凸の複雑な字下げ - 不正 {{{
+  def test_layout2_jsiage_cocomplex__invalid
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから改行２字下げ、折り返して８字下げ］
+ねこ
+なめ
+［＃ここで字下げ終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::TopWithTurn.new(
+            [
+              Tree::Text.new('ねこ'),
+              Tree::LineBreak.new,
+              Tree::Text.new('なめ'),
+              Tree::LineBreak.new
+            ],
+            2,
+            8
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # 地付き {{{
+  def test_layout2_jistuki1
+    ts = Parser.parse <<EOT
+Hello
+［＃地付き］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            nil
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 改ページの後
+    ts = Parser.parse <<EOT
+［＃改頁］
+［＃地付き］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::PageBreak.new,
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            nil
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # ブロックでの地付き # {{{
+  def test_layout2_jistuki_multi
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから地付き］
+ねこ
+なめ
+［＃ここで地付き終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ねこ'),
+              Tree::LineBreak.new,
+              Tree::Text.new('なめ'),
+              Tree::LineBreak.new
+            ],
+            nil
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # 地寄せ {{{
+  def test_layout2_jiyose1
+    ts = Parser.parse <<EOT
+Hello
+［＃地から１2字上げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            12
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 字下げと違い、前に文字があってもいいんだよ
+    ts = Parser.parse <<EOT
+ひゃっほう！［＃地から３字上げ］ここだけさ
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('ひゃっほう！'),
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ここだけさ'),
+              Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # ブロックでの地寄せ {{{
+  def test_layout2_jiyose_multi
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから地から２字上げ］
+ねこ
+なめ
+［＃ここで字上げ終わり］
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Bottom.new(
+            [
+              Tree::Text.new('ねこ'),
+              Tree::LineBreak.new,
+              Tree::Text.new('なめ'),
+              Tree::LineBreak.new
+            ],
+            2
+          ),
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # }}}
+
+  # ページの左右中央に組んである処理 {{{
+
+  # 左右中央 {{{
+  def test_horizontal_center
     ts = Parser.parse <<-EOT
 ［＃ページの左右中央］
 ねこねこぼーい
@@ -1544,7 +1494,8 @@ EOT
     assert_equal except, ts
   end # }}}
 
-  def test_top_with_horizontal_center # {{{
+  # 字下げ付き左右中央 - 不正 {{{
+  def test_top_with_horizontal_center__invalid
     # XXX 利便性のために、左右中央の中に字下げを入れる
 
     ts = Parser.parse <<-EOT
@@ -1573,22 +1524,388 @@ EOT
 
     assert_equal except, ts
   end # }}}
-end # }}}
 
-class TestParserOption < MiniTest::Unit::TestCase # {{{
-  include AozoraParser
+  # }}}
 
-  def test_init__with_block__no_method # {{{
-    assert_raises(NameError) do
-      ParserOption.new(:hoge => true)
-    end
+  # 見出し {{{
+
+  # 通常の見出し {{{
+  def test_heading_normal
+    ts = Parser.parse("meow\n宇宙猫［＃「宇宙猫」は中見出し］\nmeow")
+
+    assert_equal 5, ts.size
+    assert_equal Tree::Text.new('meow'),                                ts[0]
+    assert_equal Tree::LineBreak.new,                                   ts[1]
+    assert_equal Tree::Heading.new([Tree::Text.new('宇宙猫')], '中'),   ts[2]
+    assert_equal Tree::LineBreak.new,                                   ts[3]
+    assert_equal Tree::Text.new('meow'),                                ts[4]
+
+    # FIXME
+    #［＃大見出し］○○○○○○○○○○［＃大見出し終わり］
+    #［＃ここから大見出し］
+    # ○○○○○○○○○○
+    # ○○○○○○○○○○
+    # ［＃ここで大見出し終わり］
   end # }}}
 
-  def test_init__with_block # {{{
-    opt = ParserOption.new(:check_last_block_end => true)
-
-    assert_equal true, opt.check_last_block_end
+  # 同行見出し FIXME {{{
+  def test_heading_on_same_line
+    # 見出しの後に、改行無しで通常の文が続く
+    # ○○○○○［＃「○○○○○」は同行中見出し］×××××××
   end # }}}
+
+  # 窓見出し FIXME {{{
+  def test_heading_window
+    # ○○○○○［＃「○○○○○」は窓中見出し］
+  end # }}}
+
+  # }}}
+
+  # 外字 {{{
+
+  # 第１第２水準にない漢字 {{{
+  def test_gaiji_jis
+    ts = Parser.parse('叢という叢を掻き※［＃「廴＋囘」、第4水準2-12-11］したり')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('叢という叢を掻き'),
+          Tree::JIS.new([Tree::Text.new('※')], '「廴＋囘」、第4水準2-12-11'),
+          Tree::Text.new('したり')
+        ]
+      )
+    assert_equal except, ts
+  end # }}}
+
+  # 特殊な仮名や記号など FIXME {{{
+  def test_gaiji_kigou
+    # ※［＃二の字点、1-2-22］
+    # ※［＃ファイナルシグマ、1-6-57］
+  end # }}}
+
+  # アクセント符号付きのラテン・アルファベット FIXME {{{
+  def test_gaiji_accent
+  end # }}}
+
+  # Unicode の外字 - 不正 {{{
+  def test_gaiji_unicode__invalid
+    ts = Parser.parse('木綿の上着と｜※［＃「ころもへん＋庫」、unicode8932］子《クーシ》をはいた女')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('木綿の上着と'),
+          Tree::Unicode.new([Tree::Text.new('※')], '「ころもへん＋庫」、unicode8932'),
+          Tree::Ruby.new([Tree::Text.new('子')], 'クーシ'),
+          Tree::Text.new('をはいた女')
+        ]
+      )
+    assert_equal except, ts
+  end
+
+  # }}}
+
+  # }}}
+
+  # 訓点 {{{
+  # http://kumihan.aozora.gr.jp/kunten.html
+
+  # 返り点 FIXME {{{
+  def test_kunten_kaeri_ten
+  end # }}}
+
+  # 訓点送り仮名 FIXME {{{
+  def test_kunten_okuri_gana
+  end # }}}
+
+  # 返り点と訓点送り仮名の混在 FIXME {{{
+  def test_kunten_kaeri_ten_and_okuri_gana
+  end # }}}
+
+  # }}}
+
+  # 強調 {{{
+  # http://kumihan.aozora.gr.jp/emphasis.html
+
+  # 傍点 {{{
+  def test_kyouchou_bouten
+    ts = Parser.parse("今日のところはねこ［＃「ねこ」に傍点］をなめたい")
+
+    assert_equal 3, ts.size
+    assert_instance_of Tree::Text,              ts[0]
+    assert_instance_of Tree::Dots,              ts[1]
+    assert_instance_of Tree::Text,              ts[2]
+    assert_equal       'をなめたい',            ts[2].text
+
+    dots = ts[1]
+    assert_equal 1, dots.size
+    assert_instance_of Tree::Text,  dots[0]
+    assert_equal       'ねこ',      dots.text
+    assert_equal       'ねこ',      dots[0].text
+
+    # 一文字離れている
+    ts = Parser.parse("おはよう！\nなぜかねこを［＃「ねこ」に傍点］なめたいね")
+
+    assert_equal 5, ts.size
+    assert_equal Tree::Text.new('おはよう！'),              ts[0]
+    assert_equal Tree::LineBreak.new,                       ts[1]
+    assert_equal Tree::Text.new('なぜか'),                  ts[2]
+    assert_equal Tree::Dots.new([Tree::Text.new('ねこ')]),  ts[3]
+    assert_equal Tree::Text.new('をなめたいね'),            ts[4]
+
+    dots = ts[3]
+    assert_equal 1, dots.size
+    assert_instance_of Tree::Text,  dots[0]
+    assert_equal       'ねこ',      dots.text
+    assert_equal       'ねこ',      dots[0].text
+
+    # 各種傍点 FIXME
+    #
+    # 責［＃「責」に傍点］空文庫
+    # 責［＃「責」に白ゴマ傍点］空文庫
+    # 責［＃「責」に丸傍点］空文庫
+    # 責［＃「責」に白丸傍点］空文庫
+    # 責［＃「責」に黒三角傍点］空文庫
+    # 責［＃「責」に白三角傍点］空文庫
+    # 責［＃「責」に二重丸傍点］空文庫
+    # 責［＃「責」に蛇の目傍点］空文庫
+
+    # 範囲傍点 FIXME
+    # ［＃傍点］青空文庫で読書しよう［＃傍点終わり］
+    # ［＃白ゴマ傍点］青空文庫で読書しよう［＃白ゴマ傍点終わり］。
+    # ［＃丸傍点］青空文庫で読書しよう［＃丸傍点終わり］。
+    # ［＃白丸傍点］青空文庫で読書しよう［＃白丸傍点終わり］。
+    # ［＃黒三角傍点］青空文庫で読書しよう［＃黒三角傍点終わり］。
+    # ［＃白三角傍点］青空文庫で読書しよう［＃白三角傍点終わり］。
+    # ［＃二重丸傍点］青空文庫で読書しよう［＃二重丸傍点終わり］。
+    # ［＃蛇の目傍点］青空文庫で読書しよう［＃蛇の目傍点終わり］。
+
+    # 左に傍点 FIXME
+    # 責［＃「責」の左に傍点］空文庫
+    # 責［＃「責」の左に白ゴマ傍点］空文庫
+    # 責［＃「責」の左に丸傍点］空文庫
+    # 責［＃「責」の左に白丸傍点］空文庫
+    # 責［＃「責」の左に黒三角傍点］空文庫
+    # 責［＃「責」の左に白三角傍点］空文庫
+    # 責［＃「責」の左に二重丸傍点］空文庫
+    # 責［＃「責」の左に蛇の目傍点］空文庫
+
+    # 左に範囲傍点 FIXME
+    # ［＃左に傍点］青空文庫で読書しよう［＃左に傍点終わり］。　←　※以下は、新しい記法です。
+    # ［＃左に白ゴマ傍点］青空文庫で読書しよう［＃左に白ゴマ傍点終わり］。
+    # ［＃左に丸傍点］青空文庫で読書しよう［＃左に丸傍点終わり］。
+    # ［＃左に白丸傍点］青空文庫で読書しよう［＃左に白丸傍点終わり］。
+    # ［＃左に黒三角傍点］青空文庫で読書しよう［＃左に黒三角傍点終わり］。
+    # ［＃左に白三角傍点］青空文庫で読書しよう［＃左に白三角傍点終わり］。
+    # ［＃左に二重丸傍点］青空文庫で読書しよう［＃左に二重丸傍点終わり］。
+    # ［＃左に蛇の目傍点］青空文庫で読書しよう［＃左に蛇の目傍点終わり］。
+  end # }}}
+
+  # 傍線 {{{
+  def test_kyouchou_bousen
+    # 傍線
+    ts = Parser.parse("今日のところはねこを［＃「ねこ」は傍線］なめたい")
+    assert_equal Tree::Line.new([Tree::Text.new('ねこ')]),   ts[1]
+
+    # 各種傍線 FIXME
+    # 責［＃「責」に傍線］空文庫
+    # 責［＃「責」に二重傍線］空文庫
+    # 責［＃「責」に鎖線］空文庫
+    # 責［＃「責」に破線］空文庫
+    # 責［＃「責」に波線］空文庫
+
+    # ［＃傍線］青空文庫で読書しよう［＃傍線終わり］。　←　※以下は、新しい記法です。
+    # ［＃二重傍線］青空文庫で読書しよう［＃二重傍線終わり］。
+    # ［＃鎖線］青空文庫で読書しよう［＃鎖線終わり］。
+    # ［＃破線］青空文庫で読書しよう［＃破線終わり］。
+    # ［＃波線］青空文庫で読書しよう［＃波線終わり］。
+    #
+    # 責［＃「責」の左に傍線］空文庫
+    # 責［＃「責」の左に二重傍線］空文庫
+    # 責［＃「責」の左に鎖線］空文庫
+    # 責［＃「責」の左に破線］空文庫
+    # 責［＃「責」の左に波線］空文庫
+    #
+    # ［＃左に傍線］青空文庫で読書しよう［＃左に傍線終わり］。　←　※以下は、新しい記法です。
+    # ［＃左に二重傍線］青空文庫で読書しよう［＃左に二重傍線終わり］。
+    # ［＃左に鎖線］青空文庫で読書しよう［＃左に鎖線終わり］。
+    # ［＃左に破線］青空文庫で読書しよう［＃左に破線終わり］。
+    # ［＃左に波線］青空文庫で読書しよう［＃左に波線終わり］。
+  end # }}}
+
+  # 太字(ゴシック) {{{
+  def test_kyouchou_bold
+    ts = Parser.parse("今日のところはねこ［＃「ねこ」は太字］をなめたい")
+
+    assert_equal 3, ts.size
+    assert_instance_of Tree::Text,              ts[0]
+    assert_instance_of Tree::Bold,              ts[1]
+    assert_instance_of Tree::Text,              ts[2]
+    assert_equal       'をなめたい',            ts[2].text
+
+    bold = ts[1]
+    assert_equal 1, bold.size
+    assert_instance_of Tree::Text,  bold[0]
+    assert_equal       'ねこ',      bold.text
+    assert_equal       'ねこ',      bold[0].text
+
+    # 範囲 FIXME
+  end # }}}
+
+  # 斜体(イタリック) FIXME {{{
+  def test_kyouchou_italic
+  end # }}}
+
+  # }}}
+
+  # 画像 {{{
+  # http://kumihan.aozora.gr.jp/graphics.html
+
+  # 標準 FIXME {{{
+  def test_gazou
+    # ［＃石鏃二つの図（fig42154_01.png、横321×縦123）入る］
+    # ［＃「第一七圖　國頭郡今歸仁村今泊阿應理惠按司勾玉」のキャプション付きの図（fig4990_07.png、横321×縦123）入る］
+    # ［＃石鏃二つの図（fig42154_01.png）入る］
+  end # }}}
+
+  # 非標準 {{{
+  def test_gazou__invalid
+    ts = Parser.parse <<-EOT
+あいうえお
+<img src="img/00.jpg">
+さしすせそ
+EOT
+    assert_equal Tree::Image.new('img/00.jpg'),   ts[2]
+  end # }}}
+
+  # }}}
+
+  # その他 {{{
+  # http://kumihan.aozora.gr.jp/etc.html
+
+  # 訂正と「ママ」 FIXME {{{
+  def test_misc_fix
+  end # }}}
+
+  # ルビとルビのように付く文字 {{{
+  def test_misc_ruby
+    # 単純な例
+    ts = Lexer.lex("猫《ねこ》")
+    assert_equal 2, ts.size
+    assert_instance_of Token::Kanji,              ts[0]
+    assert_equal       '猫',                      ts[0].text
+    assert_instance_of Token::Ruby,               ts[1]
+    assert_equal       'ねこ',                    ts[1].ruby
+
+    # 文章の中
+    ts = Parser.parse <<EOT
+Hello
+吾輩は猫《ねこ》であるぜよ。
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('吾輩は'),
+          Tree::Ruby.new([Tree::Text.new('猫')], 'ねこ'),
+          Tree::Text.new('であるぜよ。'),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 縦線で区切られたもの
+    ts = Parser.parse <<EOT
+Hello
+吾輩は｜超かわいい生命体《ねこ》であるぜよ。
+World
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'),
+          Tree::LineBreak.new,
+          Tree::Text.new('吾輩は'),
+          Tree::Ruby.new([Tree::Text.new('超かわいい生命体')], 'ねこ'),
+          Tree::Text.new('であるぜよ。'),
+          Tree::LineBreak.new,
+          Tree::Text.new('World'),
+          Tree::LineBreak.new
+        ]
+      )
+    assert_equal except, ts
+
+    # 注記にたいしてルビがふってあるもの
+    ts = Parser.parse('碍子を※［＃「てへん＋丑」、第4水準2-12-93］《ね》じこんだり')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('碍子を'),
+          Tree::Ruby.new(
+            [Tree::JIS.new([Tree::Text.new('※')], 'てへん＋丑」、第4水準2-12-93')],
+            'ね'
+          ),
+          Tree::Text.new('じこんだり')
+        ]
+      )
+    assert_equal except, ts
+
+    # 左につく FIXME
+    # 青空文庫［＃「青空文庫」の左に「あおぞらぶんこ」のルビ］
+  end # }}}
+
+  # 縦組み中で横に並んだ文字 {{{
+  def test_misc_yoko
+    ts = Parser.parse("今日のところはねこを［＃「ねこ」は縦中横］なめたい")
+    assert_equal Tree::Yoko.new([Tree::Text.new('ねこ')]),   ts[1]
+
+    # 範囲 FIXME
+    #［＃縦中横］（※［＃ローマ数字1、1-13-21］）［＃縦中横終わり］
+  end # }}}
+
+  # 割り注 FIXME {{{
+  def test_misc_warichu
+  end # }}}
+
+  # 行右小書き、行左小書き文字（縦組み） FIXME {{{
+  def test_misc_kogaki_tate
+  end # }}}
+
+  # 上付き小文字、下付き小文字（横組み） FIXME {{{
+  def test_misc_kogaki_yoko
+  end # }}}
+
+  # 罫囲み FIXME {{{
+  def test_misc_border_line
+  end # }}}
+
+  # 横組みの底本 FIXME {{{
+  def test_misc_yokogumi_book
+  end # }}}
+
+  # 縦組み本文中の横組み FIXME {{{
+  def test_misc_yokogumi
+  end # }}}
+
+  # 文字サイズ FIXME {{{
+  def test_misc_char_size
+  end # }}}
+
+  # }}}
+
+  # 注記の重複 FIXME {{{
+  # }}}
+
+  # 青空文庫を越えた利用（番外）# {{{
+  #   本文終わり
+  #   青空文庫ファイルで使えない文字
+  #     ルビ記号など、特別な役割を与えられた文字
+  #     外字注記形式による代替表現
+  # }}}
+
 end # }}}
 
 # make_simple_inspect
