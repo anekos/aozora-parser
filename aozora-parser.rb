@@ -1114,9 +1114,14 @@ module AozoraParser
       end
     end
 
+    def last_is_break? (node)
+      return true if Tree::Break === node
+      return Tree::Block === node && last_is_break?(node.items.last)
+    end
+
     def on_indent (klass, level)
       if klass == Tree::Top
-        raise Error::UnexpectedWord unless @current_block.last == nil or Tree::Break === @current_block.last
+        raise Error::UnexpectedWord unless @current_block.last == nil or last_is_break?(@current_block.last)
       end
       @ignore_linebreak = false
       enter_block(klass, [], level)

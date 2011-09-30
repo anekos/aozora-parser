@@ -21,6 +21,15 @@ module MiniTest::Assertions
       message || "Both values are same to #{except}."
     )
   end
+
+  def assert_not_raise (message = nil, &block)
+    e = nil
+    begin
+      block.call
+    rescue Exception => e
+    end
+    assert(!e, message || "Block raises #{e}")
+  end
 end
 
 # Token
@@ -1054,6 +1063,16 @@ EOT
     assert_instance_of  Tree::Dots,   ts[0]
     assert_equal        1,            ts[0].token.line
   end # }}}
+
+  def test_continued_top
+    assert_not_raise do
+      ts = Parser.parse <<EOT
+［＃天から１７字下げ］八、執作……………8.〔kammaka_ri_ ca bhariya_ ca〕（〔karmaka_ri_ ca dhaja_hata〕［＃tは下ドット付き］）
+［＃天から１７字下げ］九、擧旗婦…………9.〔dhaja-hrita_〕［＃rは下ドット付き］（〔dhvaja-hrita_〕［＃rは下ドット付き］）
+［＃天から２６字下げ］10.〔muhuttika_〕（〔tamkhanika_〕［＃mは上ドット付き。nは下ドット付き］）（〔tatksanika_〕［＃sは下ドット付き］）
+EOT
+    end
+  end
 end # }}}
 
 class TestParserOption < MiniTest::Unit::TestCase # {{{
