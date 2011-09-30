@@ -464,11 +464,20 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
         Tree::Text.new('二三四'),
         Tree::Text.new('五六七八九'),
       ]).split_by_text('三四五')
-
     assert_equal Tree::Block.new([Tree::Ruby.new([Tree::Text.new('〇一')]), Tree::Text.new('二')]),
                                                   l
     assert_equal Tree::Block.new([Tree::Text.new('三四五')]),        c
     assert_equal Tree::Block.new([Tree::Text.new('六七八九')]),      r
+
+
+    l, c, r =
+      Tree::Document.new([
+        Tree::Text.new('HEAD'),
+        Tree::Ruby.new([Tree::Text.new('二三四')], 'ルビ'),
+        Tree::Text.new('TAIL'),
+      ]).split_by_text('二三四')
+    assert_equal Tree::Document.new([Tree::Text.new('HEAD')]), l
+
 
     # ルビ(ブロック)を分割することはできない
     ruby = Tree::Ruby.new([Tree::Text.new('foobarbaz')], 'メタ構文変数')
@@ -1618,7 +1627,74 @@ EOT
 
   # 窓見出し FIXME {{{
   def test_heading_window
-    # ○○○○○［＃「○○○○○」は窓中見出し］
+    ts = Parser.parse('HOGE○○○○○［＃「○○○○○」は窓中見出し］FUGA')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('HOGE'),
+          Tree::WindowHeading.new(
+            [
+              Tree::Text.new('○○○○○')
+            ],
+            '中'
+          ),
+          Tree::Text.new('FUGA'),
+        ]
+      )
+    assert_equal except, ts
+
+    # ルビが混ざったパターン
+    ts = Parser.parse('HEAD｜○○《まるまる》［＃「○○」は窓中見出し］TAIL')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('HEAD'),
+          Tree::WindowHeading.new(
+            [
+              Tree::Ruby.new([Tree::Text.new('○○')], 'まるまる')
+            ],
+            '中'
+          ),
+          Tree::Text.new('TAIL')
+        ]
+      )
+    assert_equal except, ts
+
+    # ルビが半端に混ざったパターン
+    ts = Parser.parse('HEAD△｜○○《まるまる》［＃「△○○」は窓中見出し］TAIL')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('HEAD'),
+          Tree::WindowHeading.new(
+            [
+              Tree::Text.new('△'),
+              Tree::Ruby.new([Tree::Text.new('○○')], 'まるまる')
+            ],
+            '中'
+          ),
+          Tree::Text.new('TAIL')
+        ]
+      )
+    assert_equal except, ts
+
+    # ルビが混ざったパターン
+    # + 窓見出しのルビは、前方参照型の見出し注記には含めないで、素のテキストとする
+    ts = Parser.parse('HEAD丸丸《まるまる》［＃「丸丸」は窓中見出し］TAIL')
+    except =
+      Tree::Document.new(
+        [
+          Tree::Text.new('HEAD'),
+          Tree::WindowHeading.new(
+            [
+              Tree::Ruby.new([Tree::Text.new('丸丸')], 'まるまる')
+            ],
+            '中'
+          ),
+          Tree::Text.new('TAIL')
+        ]
+      )
+    assert_equal except, ts
   end # }}}
 
   # }}}

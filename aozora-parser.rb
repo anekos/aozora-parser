@@ -610,6 +610,7 @@ module AozoraParser
       end
     end # }}}
 
+    class WindowHeading < Heading; end
 
     class TopWithTurn < Top # {{{
       attr_reader *(PROPERTY_NAMES = superclass::PROPERTY_NAMES + [:turned_level])
@@ -1056,6 +1057,8 @@ module AozoraParser
         on_targeted(tok, Tree::Yoko)
       when /\A(.)Œ©o‚µ\Z/
         on_targeted(tok, Tree::Heading, Regexp.last_match[1])
+      when /\A‘‹(.)Œ©o‚µ\Z/
+        on_targeted(tok, Tree::WindowHeading, Regexp.last_match[1])
       else
         put(Tree::Unknown, tok)
       end
