@@ -7,6 +7,22 @@ require 'aozora-parser'
 
 AozoraParser.make_simple_inspect
 
+module MiniTest::Assertions
+  def assert_not_equal (except, actual, message = nil)
+    assert(
+      except != actual,
+      message || "Both values equal to #{except}."
+    )
+  end
+
+  def assert_not_same (except, actual, message = nil)
+    assert(
+      except.object_id != actual.object_id,
+      message || "Both values are same to #{except}."
+    )
+  end
+end
+
 # Token
 
 class TestTokenAnnotation < MiniTest::Unit::TestCase # {{{
@@ -197,6 +213,17 @@ class TestTreeNode < MiniTest::Unit::TestCase # {{{
     assert_block { not Tree::Top.new([Tree::Text.new('a')]) == Tree::Top.new([Tree::Text.new('A')]) }
   end # }}}
 
+  def test_initialize_copy # {{{
+    a = Tree::Text.new('hoge')
+    b = a.clone
+    assert_not_same a.text, b.text
+
+    a = Tree::Block.new([Tree::Text.new('hoge')])
+    b = a.clone
+    assert_not_same a.items, b.items
+    assert_not_same a.items.first, b.items.first
+  end # }}}
+
   def test_display_name # {{{
     assert_equal 'Text',      Tree::Text.display_name
     assert_equal 'Ruby',      Tree::Ruby.display_name
@@ -319,7 +346,7 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
   end # }}}
 
   def test_split # {{{
-    # XXX ’P‚È‚éƒeƒLƒXƒg‚É•ªŠ„‚³‚ê‚éê‡‚ÍABlock ‚È‚Ç‚É‚¢‚ê‚È‚¢‚Å•Ô‚·
+    # •ªŠ„‚³‚ê‚½‚à‚Ì‚ÍAŒ³‚ÌƒRƒ“ƒeƒi‚É“ü‚Á‚Ä‚¢‚é
 
     l, r =
       Tree::Block.new([
@@ -327,14 +354,36 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
         Tree::Text.new('“ñŽOŽl'),
         Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
       ]).split(3)
+    assert_equal Tree::Block.new([Tree::Ruby.new([Tree::Text.new('Zˆê')]), Tree::Text.new('“ñ')]), l
+    assert_equal Tree::Block.new([Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã')]),                               r
 
-    assert_equal Tree::Block.new([Tree::Ruby.new([Tree::Text.new('Zˆê')]), Tree::Text.new('“ñ')]),
-                                                      l
-    assert_equal Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã'),    r
+    l, r =
+      Tree::Block.new([
+        Tree::Bold.new([Tree::Text.new('Zˆê')]),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(3)
+
+    assert_equal Tree::Block.new([
+                  Tree::Bold.new([Tree::Text.new('Zˆê')]),
+                  Tree::Text.new('“ñ')
+                 ]),  l
+    assert_equal Tree::Block.new([Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã')]), r
+
+    l, r =
+      Tree::Block.new([
+        Tree::Bold.new([Tree::Text.new('Zˆê')]),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(2)
+    assert_equal Tree::Block.new([
+                  Tree::Bold.new([Tree::Text.new('Zˆê')]),
+                 ]),  l
+    assert_equal Tree::Block.new([Tree::Text.new('“ñŽOŽlŒÜ˜ZŽµ”ª‹ã')]), r
   end # }}}
 
   def test_split__simple # {{{
-    # XXX ’P‚È‚éƒeƒLƒXƒg‚É•ªŠ„‚³‚ê‚éê‡‚ÍABlock ‚È‚Ç‚É‚¢‚ê‚È‚¢‚Å•Ô‚·
+    # •ªŠ„‚³‚ê‚½‚à‚Ì‚ÍAŒ³‚ÌƒRƒ“ƒeƒi‚É“ü‚Á‚Ä‚¢‚é
 
     l, r =
       Tree::Block.new([
@@ -343,12 +392,22 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
         Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
       ]).split(3)
 
-    assert_equal Tree::Text.new('Zˆê“ñ'),            l
-    assert_equal Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã'),    r
+    assert_equal Tree::Block.new([Tree::Text.new('Zˆê“ñ')]),            l
+    assert_equal Tree::Block.new([Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã')]),    r
+
+    l, r =
+      Tree::Bold.new([
+        Tree::Text.new('Zˆê'),
+        Tree::Text.new('“ñŽOŽl'),
+        Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
+      ]).split(3)
+
+    assert_equal Tree::Bold.new([Tree::Text.new('Zˆê“ñ')]),            l
+    assert_equal Tree::Bold.new([Tree::Text.new('ŽOŽlŒÜ˜ZŽµ”ª‹ã')]),    r
   end # }}}
 
   def test_split__empty # {{{
-    # XXX ‚©‚ç‚É‚È‚éê‡‚Í nil
+    # XXX ‹ó‚É‚È‚éê‡‚Í nil
 
     l, r =
       Tree::Block.new([
@@ -357,8 +416,8 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
         Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
       ]).split(0)
 
-    assert_equal nil,                                       l
-    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    r
+    assert_equal nil,                                                         l
+    assert_equal Tree::Block.new([Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã')]),   r
 
 
     l, r =
@@ -368,8 +427,8 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
         Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
       ]).split(10)
 
-    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    l
-    assert_equal nil,                                       r
+    assert_equal Tree::Block.new([Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã')]),   l
+    assert_equal nil,                                                         r
 
 
     l, r =
@@ -379,8 +438,8 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
         Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
       ]).split(11)
 
-    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã'),    l
-    assert_equal nil,                                       r
+    assert_equal Tree::Block.new([Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª‹ã')]),   l
+    assert_equal nil,                                                         r
 
 
     l, r =
@@ -390,8 +449,8 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
         Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
       ]).split(9)
 
-    assert_equal Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª'),    l
-    assert_equal Tree::Text.new('‹ã'),                    r
+    assert_equal Tree::Block.new([Tree::Text.new('Zˆê“ñŽOŽlŒÜ˜ZŽµ”ª')]),    l
+    assert_equal Tree::Block.new([Tree::Text.new('‹ã')]),                    r
   end # }}}
 
   def test_split_by_text # {{{
@@ -408,8 +467,8 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
 
     assert_equal Tree::Block.new([Tree::Ruby.new([Tree::Text.new('Zˆê')]), Tree::Text.new('“ñ')]),
                                                   l
-    assert_equal Tree::Text.new('ŽOŽlŒÜ'),        c
-    assert_equal Tree::Text.new('˜ZŽµ”ª‹ã'),      r
+    assert_equal Tree::Block.new([Tree::Text.new('ŽOŽlŒÜ')]),        c
+    assert_equal Tree::Block.new([Tree::Text.new('˜ZŽµ”ª‹ã')]),      r
 
     # ƒ‹ƒr(ƒuƒƒbƒN)‚ð•ªŠ„‚·‚é‚±‚Æ‚Í‚Å‚«‚È‚¢
     ruby = Tree::Ruby.new([Tree::Text.new('foobarbaz')], 'ƒƒ^\•¶•Ï”')
@@ -419,8 +478,6 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
   end # }}}
 
   def test_split_by_text__simple # {{{
-    # XXX ’P‚È‚éƒeƒLƒXƒg‚É•ªŠ„‚³‚ê‚éê‡‚ÍABlock ‚È‚Ç‚É‚¢‚ê‚È‚¢‚Å•Ô‚·
-
     l, c, r =
       Tree::Block.new([
         Tree::Text.new('Zˆê'),
@@ -428,9 +485,9 @@ class TestTreeBlock < MiniTest::Unit::TestCase # {{{
         Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),
       ]).split_by_text('“ñŽOŽl')
 
-    assert_equal Tree::Text.new('Zˆê'),        l
-    assert_equal Tree::Text.new('“ñŽOŽl'),      c
-    assert_equal Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã'),  r
+    assert_equal Tree::Block.new([Tree::Text.new('Zˆê')]),        l
+    assert_equal Tree::Block.new([Tree::Text.new('“ñŽOŽl')]),      c
+    assert_equal Tree::Block.new([Tree::Text.new('ŒÜ˜ZŽµ”ª‹ã')]),  r
   end # }}}
 end # }}}
 

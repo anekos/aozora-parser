@@ -311,6 +311,26 @@ module AozoraParser
       def text
         ''
       end
+
+      private
+
+      def initialize_copy (obj)
+        self.class::PROPERTY_NAMES.each do
+          |name|
+          pname = "@#{name}"
+          from = obj.instance_variable_get(pname)
+          if from.class == Array
+            from = from.map {|it| from.clone }
+          else
+            begin
+              from = from.clone
+            rescue TypeError => e
+              # DO NOTHING
+            end
+          end
+          self.instance_variable_set(pname, from)
+        end
+      end
     end # }}}
 
     class Block < Node # {{{
@@ -459,11 +479,18 @@ module AozoraParser
         return nil unless list
         return nil if list.empty?
 
-        if list.all? {|node| Tree::Text === node }
-          Tree::Text.create(list.first.token, list.map(&:text).join(''))
-        else
-          Tree::Block.create(list.first.token, list)
-        end
+        items =
+          if list.all? {|node| Tree::Text === node }
+            [Tree::Text.create(list.first.token, list.map(&:text).join(''))]
+          else
+            list
+          end
+
+        result = self.clone
+        result.token = list.first.token
+        result.instance_variable_set(:@items, items)
+
+        result
       end
     end # }}}
 
