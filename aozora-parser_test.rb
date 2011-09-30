@@ -1522,6 +1522,26 @@ EOT
       );
 
     assert_equal except, ts
+
+    ts = Parser.parse <<-EOT
+［＃ページの左右中央］
+ねこねこぼーい
+［＃改丁］
+EOT
+    except =
+      Tree::Document.new(
+        [
+          Tree::HorizontalCenter.new(
+            [
+              Tree::Text.new('ねこねこぼーい'),
+              Tree::LineBreak.new
+            ]
+          ),
+          Tree::SheetBreak.new
+        ]
+      );
+
+    assert_equal except, ts
   end # }}}
 
   def test_top_with_horizontal_center # {{{

@@ -1039,7 +1039,8 @@ module AozoraParser
       when /\A改(?:ページ|頁)\Z/
         exit_block(Tree::HorizontalCenter) if @current_block.class == Tree::HorizontalCenter
         put(Tree::PageBreak)
-      when /\A改丁\/Z/
+      when /\A改丁\Z/
+        exit_block(Tree::HorizontalCenter) if @current_block.class == Tree::HorizontalCenter
         put(Tree::SheetBreak)
       when /\A(?:天から)?(#{Pattern::NUMS}+)字下げ?\Z/
         on_indent(Tree::Top, Regexp.last_match[1])
