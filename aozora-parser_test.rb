@@ -8,17 +8,17 @@ require 'aozora-parser'
 AozoraParser.make_simple_inspect
 
 module MiniTest::Assertions
-  def assert_not_equal (except, actual, message = nil)
+  def assert_not_equal (expected, actual, message = nil)
     assert(
-      except != actual,
-      message || "Both values equal to #{except}."
+      expected != actual,
+      message || "Both values equal to #{expected}."
     )
   end
 
-  def assert_not_same (except, actual, message = nil)
+  def assert_not_same (expected, actual, message = nil)
     assert(
-      except.object_id != actual.object_id,
-      message || "Both values are same to #{except}."
+      expected.object_id != actual.object_id,
+      message || "Both values are same to #{expected}."
     )
   end
 
@@ -186,7 +186,7 @@ EOT
 青空文庫作成ファイル：
 このファイルは、インターネットの図書館、青空文庫（http://www.aozora.gr.jp/）で作られました。入力、校正、制作にあたったのは、ボランティアの皆さんです。
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('ほんぶん1'),
@@ -197,7 +197,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end
 end # }}}
 
@@ -704,7 +704,7 @@ Hello
 World
 EOT
 
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -715,7 +715,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
 
     ts = Parser.parse <<EOT
@@ -724,7 +724,7 @@ Hello
 World
 EOT
 
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -736,7 +736,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   def test_rice_mark # {{{
@@ -748,7 +748,7 @@ Hello
 World
 EOT
 
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -759,7 +759,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   def test_rice_mark_with_annotation # {{{
@@ -768,7 +768,7 @@ Hello
 私は｜※※※※［＃ねこ］が大好きです。
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -781,14 +781,14 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     ts = Parser.parse <<EOT
 Hello
 私は｜※［＃ねこ］が大好きです。
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -801,14 +801,14 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     ts = Parser.parse <<EOT
 Hello
 私は※※※※［＃ねこ］が大好きです。
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -821,14 +821,14 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     ts = Parser.parse <<EOT
 Hello
 私は※［＃ねこ］が大好きです。
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -841,7 +841,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   def test_block_annotation # {{{
@@ -857,7 +857,7 @@ Hello
 World
 EOT
 
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -875,7 +875,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   def test_continued_block_annotation # {{{
@@ -892,7 +892,7 @@ three
 four
 EOT
 
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Top.new(
@@ -915,7 +915,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
   end # }}}
 
@@ -974,7 +974,7 @@ Hello
 りんちょ
 ［＃ここで字下げ終わり］
 EOT
-  except =
+  expected =
     Tree::Document.new(
       [
         Tree::Text.new('Hello'), Tree::LineBreak.new,
@@ -993,7 +993,7 @@ EOT
         ),
       ]
     )
-  assert_equal except, ts
+  assert_equal expected, ts
 
     begin
       ts = Parser.parse <<EOT
@@ -1016,7 +1016,7 @@ one
 two
 ［＃ここで字下げ終わり］
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1034,7 +1034,7 @@ EOT
           )
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   def test_line_number # {{{
@@ -1106,13 +1106,13 @@ class TestAozoraSpec < MiniTest::Unit::TestCase # {{{
     ts = Parser.parse(<<EOT)
 ［＃改丁］
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::SheetBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # 改ページ {{{
@@ -1120,13 +1120,13 @@ EOT
     ts = Parser.parse(<<EOT)
 ［＃改ページ］
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::PageBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # 改段 {{{
@@ -1134,13 +1134,13 @@ EOT
     ts = Parser.parse(<<EOT)
 ［＃改段］
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::ParagraphBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # }}}
@@ -1158,7 +1158,7 @@ Hello
 ［＃３字下げ］ここだけさ
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1174,14 +1174,14 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 文書のはじめ
     ts = Parser.parse <<EOT
 ［＃３字下げ］ここだけさ
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Top.new(
@@ -1195,7 +1195,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 改ページの後
     ts = Parser.parse <<EOT
@@ -1203,7 +1203,7 @@ EOT
 ［＃３字下げ］ここだけさ
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::PageBreak.new,
@@ -1218,7 +1218,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 字下げの場合、タグの前には文字はこないはず
     assert_raises(Error::UnexpectedWord) do
@@ -1237,7 +1237,7 @@ Hello
 ［＃天から３字下げ］ここだけさ
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1253,7 +1253,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # ブロックでの字下げ {{{
@@ -1266,7 +1266,7 @@ Hello
 ［＃ここで字下げ終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1284,7 +1284,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # ブロックでの字下げ - 不正？ {{{
@@ -1298,7 +1298,7 @@ Hello
 ［＃ここで字下げ終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1315,7 +1315,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 折り返し付き
     ts = Parser.parse <<EOT
@@ -1325,7 +1325,7 @@ Hello
 ［＃ここで字下げ終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1343,7 +1343,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 折り返し付き
     ts = Parser.parse <<EOT
@@ -1353,7 +1353,7 @@ Hello
 ［＃ここで字下げ終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1374,7 +1374,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # 凹凸の複雑な字下げ {{{
@@ -1387,7 +1387,7 @@ Hello
 ［＃ここで字下げ終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1406,7 +1406,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     ts = Parser.parse <<EOT
 Hello
@@ -1416,7 +1416,7 @@ Hello
 ［＃ここで字下げ終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1435,7 +1435,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # 凹凸の複雑な字下げ - 不正 {{{
@@ -1448,7 +1448,7 @@ Hello
 ［＃ここで字下げ終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1467,7 +1467,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # 地付き {{{
@@ -1477,7 +1477,7 @@ Hello
 ［＃地付き］ここだけさ
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1493,7 +1493,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 改ページの後
     ts = Parser.parse <<EOT
@@ -1501,7 +1501,7 @@ EOT
 ［＃地付き］ここだけさ
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::PageBreak.new,
@@ -1516,7 +1516,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # ブロックでの地付き # {{{
@@ -1529,7 +1529,7 @@ Hello
 ［＃ここで地付き終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1547,7 +1547,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # 地寄せ {{{
@@ -1557,7 +1557,7 @@ Hello
 ［＃地から１2字上げ］ここだけさ
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1573,14 +1573,14 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 字下げと違い、前に文字があってもいいんだよ
     ts = Parser.parse <<EOT
 ひゃっほう！［＃地から３字上げ］ここだけさ
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('ひゃっほう！'),
@@ -1595,7 +1595,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # ブロックでの地寄せ {{{
@@ -1608,7 +1608,7 @@ Hello
 ［＃ここで字上げ終わり］
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -1626,7 +1626,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # }}}
@@ -1640,7 +1640,7 @@ EOT
 ねこねこぼーい
 ［＃改ページ］
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::HorizontalCenter.new(
@@ -1653,14 +1653,14 @@ EOT
         ]
       );
 
-    assert_equal except, ts
+    assert_equal expected, ts
 
     ts = Parser.parse <<-EOT
 ［＃ページの左右中央］
 ねこねこぼーい
 ［＃改丁］
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::HorizontalCenter.new(
@@ -1673,7 +1673,7 @@ EOT
         ]
       );
 
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # 字下げ付き左右中央 - 不正 {{{
@@ -1686,7 +1686,7 @@ EOT
 ［＃ここで字下げ終わり］
 ［＃改ページ］
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::HorizontalCenter.new(
@@ -1704,7 +1704,7 @@ EOT
         ]
       );
 
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # }}}
@@ -1739,7 +1739,7 @@ EOT
   # 窓見出し FIXME {{{
   def test_heading_window
     ts = Parser.parse('HOGE○○○○○［＃「○○○○○」は窓中見出し］FUGA')
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('HOGE'),
@@ -1752,11 +1752,11 @@ EOT
           Tree::Text.new('FUGA'),
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # ルビが混ざったパターン
     ts = Parser.parse('HEAD｜○○《まるまる》［＃「○○」は窓中見出し］TAIL')
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('HEAD'),
@@ -1769,11 +1769,11 @@ EOT
           Tree::Text.new('TAIL')
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # ルビが半端に混ざったパターン
     ts = Parser.parse('HEAD△｜○○《まるまる》［＃「△○○」は窓中見出し］TAIL')
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('HEAD'),
@@ -1787,12 +1787,12 @@ EOT
           Tree::Text.new('TAIL')
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # ルビが混ざったパターン
     # + 窓見出しのルビは、前方参照型の見出し注記には含めないで、素のテキストとする
     ts = Parser.parse('HEAD丸丸《まるまる》［＃「丸丸」は窓中見出し］TAIL')
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('HEAD'),
@@ -1805,7 +1805,7 @@ EOT
           Tree::Text.new('TAIL')
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # }}}
@@ -1815,7 +1815,7 @@ EOT
   # 第１第２水準にない漢字 {{{
   def test_gaiji_jis
     ts = Parser.parse('叢という叢を掻き※［＃「廴＋囘」、第4水準2-12-11］したり')
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('叢という叢を掻き'),
@@ -1823,7 +1823,7 @@ EOT
           Tree::Text.new('したり')
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end # }}}
 
   # 特殊な仮名や記号など FIXME {{{
@@ -1839,7 +1839,7 @@ EOT
   # Unicode の外字 - 不正 {{{
   def test_gaiji_unicode__invalid
     ts = Parser.parse('木綿の上着と｜※［＃「ころもへん＋庫」、unicode8932］子《クーシ》をはいた女')
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('木綿の上着と'),
@@ -1848,7 +1848,7 @@ EOT
           Tree::Text.new('をはいた女')
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
   end
 
   # }}}
@@ -2051,7 +2051,7 @@ Hello
 吾輩は猫《ねこ》であるぜよ。
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -2064,7 +2064,7 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 縦線で区切られたもの
     ts = Parser.parse <<EOT
@@ -2072,7 +2072,7 @@ Hello
 吾輩は｜超かわいい生命体《ねこ》であるぜよ。
 World
 EOT
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('Hello'),
@@ -2085,11 +2085,11 @@ EOT
           Tree::LineBreak.new
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 注記にたいしてルビがふってあるもの
     ts = Parser.parse('碍子を※［＃「てへん＋丑」、第4水準2-12-93］《ね》じこんだり')
-    except =
+    expected =
       Tree::Document.new(
         [
           Tree::Text.new('碍子を'),
@@ -2100,7 +2100,7 @@ EOT
           Tree::Text.new('じこんだり')
         ]
       )
-    assert_equal except, ts
+    assert_equal expected, ts
 
     # 左につく FIXME
     # 青空文庫［＃「青空文庫」の左に「あおぞらぶんこ」のルビ］
