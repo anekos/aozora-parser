@@ -523,6 +523,7 @@ module AozoraParser
     class LineBreak < Break; end
     class PageBreak < Break; end
     class SheetBreak < Break; end
+    class ParagraphBreak < Break; end
 
     class Ruby < Block # {{{
       include DontSplit
@@ -1063,6 +1064,8 @@ module AozoraParser
       when /\A改丁\Z/
         exit_block(Tree::HorizontalCenter) if @current_block.class == Tree::HorizontalCenter
         put(Tree::SheetBreak)
+      when /\A改段\Z/
+        put(Tree::ParagraphBreak)
       when /\A(?:天から)?(#{Pattern::NUMS}+)字下げ?\Z/
         on_indent(Tree::Top, Regexp.last_match[1])
       when /\A(?:地付き|、?地(?:から|より))(?:(#{Pattern::NUMS}+)字(?:空き|上げ|アキ))?/

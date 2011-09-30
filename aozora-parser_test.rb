@@ -1044,14 +1044,13 @@ EOT
 
   # 改段 {{{
   def test_layout1_kaidan
-    return # FIXME
     ts = Parser.parse(<<EOT)
 ［＃改段］
 EOT
     except =
       Tree::Document.new(
         [
-          Tree::PageBreak.new
+          Tree::ParagraphBreak.new
         ]
       )
     assert_equal except, ts
