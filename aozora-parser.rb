@@ -758,8 +758,9 @@ module AozoraParser
           read_pattern(/^｜/, Token::RubyBar, line) ||
           read_pattern(/^※/, Token::RiceMark, line) ||
           read_pattern(/^《([^》]+)》/, Token::Ruby, line) ||
-          read_pattern(/^［＃([^］]+)］/, Token::Annotation, line) ||
           nil
+
+        tok, rest = read_annotation(line) unless tok
 
         if tok
           unless buf.empty?
@@ -786,6 +787,33 @@ module AozoraParser
       else
         nil
       end
+    end
+
+    def read_annotation (line)
+      return unless /^［＃/ === line
+
+      line = StringIO.new(line)
+      t = read_paren(line)
+      if t
+        return Token::Annotation.new(t[2 .. -1][0 ... -1]), line.read
+      else
+        return nil
+      end
+    end
+
+    def read_paren (line, end_char1 = '］', switch_char1 = '「', end_char2 = '」', switch_char2 = '［')
+      result = ''
+
+      while c = line.getc do
+        result << c
+        return result if c == end_char1
+        if c == switch_char1
+          return nil unless t = read_paren(line, end_char2, switch_char2, end_char1, switch_char1)
+          result << t
+        end
+      end
+
+      return nil
     end
 
     def put (token, *args)

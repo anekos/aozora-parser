@@ -176,6 +176,24 @@ EOT
     assert_equal          'third line',                     ts[5].text
   end # }}}
 
+  def test_nested # {{{
+    ts = Lexer.lex(<<EOT)
+ひっ［＃「ひっ」に傍点］外して［＃「ひっ［＃「ひっ」に傍点］外して」は底本では「ひっ外［＃「っ外」に傍点］して」］右へ
+EOT
+    expected =
+      [
+        Token::Hiragana.new('ひっ'),
+        Token::Annotation.new('「ひっ」に傍点'),
+        Token::Kanji.new('外'),
+        Token::Hiragana.new('して'),
+        Token::Annotation.new('「ひっ［＃「ひっ」に傍点］外して」は底本では「ひっ外［＃「っ外」に傍点］して」'),
+        Token::Kanji.new('右'),
+        Token::Hiragana.new('へ'),
+        Token::LineBreak.new
+      ]
+    assert_equal expected, ts
+  end # }}}
+
   def test_ignore_bottom_info # {{{
     ts = Parser.parse <<-EOT
 ほんぶん1
