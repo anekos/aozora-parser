@@ -10,7 +10,7 @@ STDOUT.set_encoding('UTF-8')
 
 AozoraParser.make_simple_inspect
 
-module MiniTest::Assertions
+module MiniTest::Assertions # {{{
   def assert_not_equal (expected, actual, message = nil)
     assert(
       expected != actual,
@@ -33,7 +33,7 @@ module MiniTest::Assertions
     end
     assert(!e, message || "Block raises #{e}")
   end
-end
+end # }}}
 
 # Token
 
@@ -176,7 +176,7 @@ EOT
     assert_equal          'third line',                     ts[5].text
   end # }}}
 
-  def test_ignore_bottom_info
+  def test_ignore_bottom_info # {{{
     ts = Parser.parse <<-EOT
 ‚Ù‚ñ‚Ô‚ñ1
 ‚Ù‚ñ‚Ô‚ñ2
@@ -201,7 +201,7 @@ EOT
         ]
       )
     assert_equal expected, ts
-  end
+  end # }}}
 end # }}}
 
 # Parser
