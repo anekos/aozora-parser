@@ -5,6 +5,9 @@ require 'minitest/unit'
 require 'minitest/autorun'
 require 'aozora-parser'
 
+Encoding.default_external = 'Shift_JIS'
+STDOUT.set_encoding('UTF-8')
+
 AozoraParser.make_simple_inspect
 
 module MiniTest::Assertions
