@@ -101,6 +101,10 @@ module AozoraParser
 
       attr_reader :line, :column
 
+      def initialize (*args)
+        # Ignore arguments
+      end
+
       def == (rhs)
         self.class == rhs.class
       end
