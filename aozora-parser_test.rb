@@ -2002,6 +2002,25 @@ EOT
     # ［＃左に波線］青空文庫で読書しよう［＃左に波線終わり］。
   end # }}}
 
+  # 傍線 - 不正？ {{{
+  def test_kyouchou_bousen__invalid
+    return # FIXME
+    ts = Parser.parse('あの美しい猫《ねこ》［＃「猫《ねこ》」に傍線］はなんだろう。')
+    expected =
+      Tree::Document.new(
+        [
+          Tree::Text.new('あの美しい'),
+          Tree::Line.new(
+            [
+              Tree::Ruby.new([Tree::Text.new('猫')], 'ねこ')
+            ]
+          ),
+          Tree::Text.new('はなんだろう。'),
+        ]
+      )
+    assert_equal expected, ts
+  end # }}}
+
   # 太字(ゴシック) {{{
   def test_kyouchou_bold
     ts = Parser.parse("今日のところはねこ［＃「ねこ」は太字］をなめたい")

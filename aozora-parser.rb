@@ -977,7 +977,7 @@ module AozoraParser
     private
 
     def current_token
-      @tokens[@tokens_pos]
+      @tokens && @tokens[@tokens_pos]
     end
 
     def next_token
