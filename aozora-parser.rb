@@ -1031,7 +1031,11 @@ module AozoraParser
 
     def enter_block (left_node, *args)
       left_node = make_node(left_node, *args)
-      exit_block(left_node.class) if @current_block.class === left_node
+
+      # 同じ種類のノードが続く場合は、一度閉じる
+      same_type_node = @current_block.class === left_node || left_node.class === @current_block
+      exit_block(left_node.class) if same_type_node
+
       block = put(left_node)
       raise Error::Implementation, "Not Block: #{block}" unless Tree::Block === block
       @block_stack.push(Stack.new(@current_block, block))
