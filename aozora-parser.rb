@@ -1,5 +1,5 @@
 #!/usr/bin/ruby
-# vim:set fileencoding=Shift_JIS :
+# vim:set fileencoding=CP932 :
 
 require 'stringio'
 
@@ -881,7 +881,7 @@ module AozoraParser
       parser.tree
     end
 
-    def self.parse_file (source_filepath, encoding = 'Shift_JIS', *args)
+    def self.parse_file (source_filepath, encoding = Encoding::CP932, *args)
       parser = self.new(*args)
       parser.parse_file(source_filepath, encoding)
       parser.tree
@@ -905,7 +905,7 @@ module AozoraParser
       @tokens_pos = -1
     end
 
-    def parse_file (source_filepath, encoding = 'Shift_JIS')
+    def parse_file (source_filepath, encoding = Encoding::CP932)
       source = File.open(source_filepath, "r:#{encoding}") {|file| file.read }
       self.parse(source)
     end
