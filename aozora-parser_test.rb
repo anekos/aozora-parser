@@ -1016,6 +1016,39 @@ EOT
       )
     assert_equal expected, ts
 
+    # 同じ種類のブロックで連続しているのでエラーにならない
+    # 全く同じクラスではないが、サブクラス <-> スーパークラスの関係
+    ts = Parser.parse <<EOT
+Hello
+［＃ここから改行天付き、折り返して１字下げ］
+ねこ
+なめ
+［＃ここから５字下げ］
+りんちょ
+［＃ここで字下げ終わり］
+EOT
+    expected =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'), Tree::LineBreak.new,
+          Tree::TopWithTurn.new(
+            [
+              Tree::Text.new('ねこ'), Tree::LineBreak.new,
+              Tree::Text.new('なめ'), Tree::LineBreak.new,
+            ],
+            nil,
+            1
+          ),
+          Tree::Top.new(
+            [
+              Tree::Text.new('りんちょ'), Tree::LineBreak.new,
+            ],
+            5
+          ),
+        ]
+      )
+    assert_equal expected, ts
+
     begin
       ts = Parser.parse <<EOT
 Hello
