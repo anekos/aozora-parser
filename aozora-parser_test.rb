@@ -1,11 +1,11 @@
 #!/usr/bin/ruby
-# vim:set fileencoding=Shift_JIS :
+# vim:set fileencoding=CP932 :
 
 require 'minitest/unit'
 require 'minitest/autorun'
 require 'aozora-parser'
 
-Encoding.default_external = 'Shift_JIS'
+Encoding.default_external = 'CP932'
 STDOUT.set_encoding('UTF-8')
 
 AozoraParser.make_simple_inspect
