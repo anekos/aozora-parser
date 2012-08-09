@@ -5,7 +5,7 @@ require 'minitest/unit'
 require 'minitest/autorun'
 require 'aozora-parser'
 
-Encoding.default_external = 'CP932'
+Encoding.default_external = 'Shift_JIS'
 STDOUT.set_encoding('UTF-8')
 
 AozoraParser.make_simple_inspect
@@ -995,26 +995,26 @@ Hello
 ÇËÇÒÇøÇÂ
 ÅmÅîÇ±Ç±Ç≈éöâ∫Ç∞èIÇÌÇËÅn
 EOT
-  expected =
-    Tree::Document.new(
-      [
-        Tree::Text.new('Hello'), Tree::LineBreak.new,
-        Tree::Top.new(
-          [
-            Tree::Text.new('ÇÀÇ±'), Tree::LineBreak.new,
-            Tree::Text.new('Ç»Çﬂ'), Tree::LineBreak.new,
-          ],
-          3
-        ),
-        Tree::Top.new(
-          [
-            Tree::Text.new('ÇËÇÒÇøÇÂ'), Tree::LineBreak.new,
-          ],
-          5
-        ),
-      ]
-    )
-  assert_equal expected, ts
+    expected =
+      Tree::Document.new(
+        [
+          Tree::Text.new('Hello'), Tree::LineBreak.new,
+          Tree::Top.new(
+            [
+              Tree::Text.new('ÇÀÇ±'), Tree::LineBreak.new,
+              Tree::Text.new('Ç»Çﬂ'), Tree::LineBreak.new,
+            ],
+            3
+          ),
+          Tree::Top.new(
+            [
+              Tree::Text.new('ÇËÇÒÇøÇÂ'), Tree::LineBreak.new,
+            ],
+            5
+          ),
+        ]
+      )
+    assert_equal expected, ts
 
     begin
       ts = Parser.parse <<EOT
