@@ -2,6 +2,7 @@
 # vim:set fileencoding=CP932 :
 
 require 'stringio'
+require 'jis-to-unicode'
 
 module AozoraParser
   module Error # {{{
@@ -219,6 +220,17 @@ module AozoraParser
 
       def initialize (code, level, parts)
         @code, @level, @parts = code, level, parts
+      end
+
+      def unicode
+        case code and code.size
+        when 3
+          JIS2Unicode.convert(*code)
+        when 2
+          JIS2Unicode.convert(1, *code)
+        else
+          nil
+        end
       end
 
       def == (rhs)
