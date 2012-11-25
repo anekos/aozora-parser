@@ -846,7 +846,7 @@ module AozoraParser
   module Pattern # {{{
     NUMS = /[ÇO-ÇX0-9]/
     NoteLine = /\A-{20,}\Z/
-    ImageTagLine = /\A\s*<img\s+src=(".+?"|'.+?'|.+\s)\s*\/?>\s*\Z/
+    ImageTagLine = /\A\s*<img\s+src=(".+?"|'.+?'|.+\s)\s*\/?>\s*\Z/i
     AozoraInformation = /\AíÍñ{ÅF.+\Z/
   end # }}}
 
