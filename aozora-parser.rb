@@ -885,6 +885,7 @@ module AozoraParser
   end # }}}
 
   class Parser # {{{
+    DefaultEncoding = Encoding::CP932
     Stack = Struct.new(:block, :left_node, :exit_from, :count)
 
     def self.parse (source, *args)
@@ -893,7 +894,7 @@ module AozoraParser
       parser.tree
     end
 
-    def self.parse_file (source_filepath, encoding = Encoding::CP932, *args)
+    def self.parse_file (source_filepath, encoding = DefaultEncoding, *args)
       parser = self.new(*args)
       parser.parse_file(source_filepath, encoding)
       parser.tree
@@ -917,8 +918,9 @@ module AozoraParser
       @tokens_pos = -1
     end
 
-    def parse_file (source_filepath, encoding = Encoding::CP932)
+    def parse_file (source_filepath, encoding = DefaultEncoding)
       source = File.open(source_filepath, "r:#{encoding}") {|file| file.read }
+      source.encode!(DefaultEncoding, :replace => 'Å¨') if encoding != DefaultEncoding
       self.parse(source)
     end
 
